@@ -25,3 +25,5 @@ To configure a development enviroment (in Ubuntu):
    (Example: `~/.virtualenvs/src/marcos_addons`)
 
         $ git clone https://jcventuravs@bitbucket.org/jcventuravs/salon_spa.git
+
+3. For instalation and configuration of Marcos, see: https://bitbucket.org/jcventuravs/openerp.marcos
