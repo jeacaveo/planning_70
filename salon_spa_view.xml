@@ -20,8 +20,6 @@
             <field name="arch" type="xml">
                 <calendar string="Citas" color="category_id" date_start="start" date_delay="duration" mode="day">
                     <field name="client_id" />
-                    <field name="employee_id" />
-                    <field name="category_id" />
                     <field name="service_id" />
                     <field name="space_id" />
                 </calendar>
