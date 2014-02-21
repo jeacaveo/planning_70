@@ -67,6 +67,7 @@ class Appointment(resource_planning, Model):
                         {'service_id': None,
                          'space_id': None,
                          'duration': None,
+                         'employee_id': None,
                          }
                     }
         return {}
