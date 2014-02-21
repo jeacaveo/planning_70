@@ -19,7 +19,7 @@
 #
 ##############################################################################
 from openerp.osv.orm import Model
-from openerp.osv import fields
+from openerp.osv import fields, osv
 from openerp.addons.resource_planning.resource_planning import resource_planning
 
 
@@ -54,7 +54,11 @@ class Appointment(resource_planning, Model):
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
         if service_id:
             service_object = self.pool.get('salon.spa.service').browse(cr, uid, service_id, context=context)
-            return {'value': {'duration': service_object.duration}}
+            employee_object = self.pool.get('hr.employee').search(cr, uid, [('service_ids', 'in', service_id)], context=context)
+            return {
+                    'value': {'duration': service_object.duration},
+                    'domain': {'employee_id': [('id', 'in', employee_object)]},
+                   }
         return {}
 
     def onchange_appointment_category(self, cr, uid, ids, category_id, context=None):
@@ -66,7 +70,6 @@ class Appointment(resource_planning, Model):
                          }
                     }
         return {}
-
 
 class Service(Model):
     _inherit = 'resource.resource'
@@ -90,8 +93,8 @@ class Service(Model):
             return {'value':
                         {'name': service_object.name,
                          'categ_id': service_object.categ_id.id,
-                        }
-                    }
+                             }
+                   }
         return {}
 
 
@@ -109,3 +112,10 @@ class Space(Model):
     _defaults = {
             'resource_type': 'material',
             }
+
+
+class hr_employee(osv.osv):
+    _inherit = 'hr.employee'
+    _columns = { 
+            'service_ids': fields.many2many('salon.spa.service', 'employee_service_rel', 'employee_id','service', 'Servicios'),
+            }   
