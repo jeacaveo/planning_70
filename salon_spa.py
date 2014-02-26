@@ -18,13 +18,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from openerp.addons.base_status.base_state import base_state
 from openerp.osv.orm import Model
 from openerp.osv import fields, osv
 from openerp.addons.resource_planning.resource_planning import resource_planning
 
 
 #order is important here. resource_planning has to come first
-class Appointment(resource_planning, Model):
+class Appointment(resource_planning, base_state, Model):
     _name = 'salon.spa.appointment'
 
     _resource_fields = ['employee_id', 'space_id']
@@ -37,6 +38,7 @@ class Appointment(resource_planning, Model):
             'name': fields.char('Nombre', size=128),
             'start': fields.datetime('Inicio', required=True),
             'duration': fields.float(u'Duración', required=True),
+            'price': fields.float(u'Precio', required=True),
             'employee_id': fields.many2one(
                 'hr.employee', 'Empleado', required=True),
             'client_id': fields.many2one(
@@ -49,14 +51,34 @@ class Appointment(resource_planning, Model):
                 'salon.spa.service', 'Servicio', required=True),
             'space_id': fields.many2one(
                 'salon.spa.space', 'Espacio', required=True),
+            'state': fields.selection([('draft', 'Reservada'),
+                                       ('pending', 'Pendiente'),
+                                       ('open', 'Confirmada'),
+                                       ('cancel', 'Cancelada'),
+                                       ('done', 'Concluida'),],
+                                       string='Estado', size=16, readonly=True, track_visibility='onchange',
+                                       help="Este estado marca la cita como:\
+                                             'Reservada' cuando se crea.\
+                                             'Pendiente'cuando es el dia de la cita,\
+                                             y el cliente no ha llegado.\
+                                             'Confirmada' cuando el cliente ha llegado.\
+                                             'Cancelada' cuando el cliente no llega o cancela.\
+                                             'Concluida' cuando la cita termina.\."),
             }
+    
+
+    _defaults = {
+            'state': 'draft'
+        }
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
+        import ipdb; ipdb.set_trace()
         if service_id:
             service_object = self.pool.get('salon.spa.service').browse(cr, uid, service_id, context=context)
             employee_object = self.pool.get('hr.employee').search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             return {
-                    'value': {'duration': service_object.duration},
+                    'value': {'duration': service_object.duration,
+                              'price': service_object.service.list_price},
                     'domain': {'employee_id': [('id', 'in', employee_object)]},
                    }
         return {}
@@ -71,6 +93,11 @@ class Appointment(resource_planning, Model):
                          }
                     }
         return {}
+
+    def case_open(self, cr, uid, ids, context=None):
+        """ Opens case """
+        values = {'active': True}
+        return self.case_set(cr, uid, ids, 'open', values, context=context)
 
 class Service(Model):
     _inherit = 'resource.resource'
