@@ -1,5 +1,6 @@
 <openerp>
     <data>
+        <!-- Employees form view -->
         <record id="hr_hr_employee_services_view_form" model="ir.ui.view">
             <field name="name">hr.hr.employee.services.view.form</field>
             <field name="model">hr.employee</field>
@@ -13,6 +14,8 @@
             </field>
         </record>
 
+        <!-- Appointment -->
+        <!-- Appointment calendar view -->
         <record id="salon_spa_appointment_calendar" model="ir.ui.view">
             <field name="name">salon.spa.appointment.calendar</field>
             <field name="model">salon.spa.appointment</field>
@@ -25,12 +28,14 @@
                 </calendar>
             </field>
         </record>
+        <!-- Appointment form view -->
         <record id="salon_spa_appointment_form" model="ir.ui.view">
             <field name="name">salon.spa.appointment.form</field>
             <field name="model">salon.spa.appointment</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Citas">
+                    <field name="state" colspan="4" widget="statusbar" statusbar_visible="draft,pending,open,done,cancel" />
                     <field name="client_id" />
                     <field name="start" />
                     <field name="category_id" on_change="onchange_appointment_category(category_id)" />
@@ -39,10 +44,10 @@
                     <field name="duration" widget="float_time" />
                     <field name="employee_id" />
                     <field name="price" readonly="1" />
-                    <field name="state" />
                 </form>
             </field>
         </record>
+        <!-- Appointment tree view -->
         <record id="salon_spa_appointment_tree" model="ir.ui.view">
             <field name="name">salon.spa.appointment.tree</field>
             <field name="model">salon.spa.appointment</field>
@@ -56,7 +61,7 @@
                     <field name="service_id" />
                     <field name="space_id" />
                     <field name="state" />
-                    <button name="case_pending" string="Pendiente" type="object"
+                    <button name="case_pending" string="En Espera" type="object"
                             states="open" icon="gtk-undo"/>
                     <button name="case_open" string="Confirmar" type="object"
                             states="pending" icon="gtk-jump-to"/>
@@ -70,6 +75,8 @@
             </field>
         </record>
 
+        <!-- Service -->
+        <!-- Service form view -->
         <record id="salon_spa_service_form" model="ir.ui.view">
             <field name="name">salon.spa.service.form</field>
             <field name="model">salon.spa.service</field>
@@ -88,6 +95,7 @@
                 </form>
             </field>
         </record>
+        <!-- Service tree view -->
         <record id="salon_spa_service_tree" model="ir.ui.view">
             <field name="name">salon.spa.service.tree</field>
             <field name="model">salon.spa.service</field>
@@ -99,6 +107,8 @@
             </field>
         </record>
 
+        <!-- Space-->
+        <!-- Space form view -->
         <record id="salon_spa_space_form" model="ir.ui.view">
             <field name="name">salon.spa.space.form</field>
             <field name="model">salon.spa.space</field>
@@ -110,6 +120,7 @@
                 </form>
             </field>
         </record>
+        <!-- Space tree view -->
         <record id="salon_spa_space_tree" model="ir.ui.view">
             <field name="name">salon.spa.space.tree</field>
             <field name="model">salon.spa.space</field>
