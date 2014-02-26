@@ -52,18 +52,18 @@ class Appointment(resource_planning, base_state, Model):
             'space_id': fields.many2one(
                 'salon.spa.space', 'Espacio', required=True),
             'state': fields.selection([('draft', 'Reservada'),
-                                       ('pending', 'Pendiente'),
+                                       ('pending', 'En Espera'),
                                        ('open', 'Confirmada'),
-                                       ('cancel', 'Cancelada'),
-                                       ('done', 'Concluida'),],
+                                       ('done', 'Concluida'),
+                                       ('cancel', 'Cancelada')],
                                        string='Estado', size=16, readonly=True, track_visibility='onchange',
                                        help="Este estado marca la cita como:\
                                              'Reservada' cuando se crea.\
-                                             'Pendiente'cuando es el dia de la cita,\
+                                             'En Espera'cuando es el dia de la cita,\
                                              y el cliente no ha llegado.\
                                              'Confirmada' cuando el cliente ha llegado.\
-                                             'Cancelada' cuando el cliente no llega o cancela.\
-                                             'Concluida' cuando la cita termina.\."),
+                                             'Concluida' cuando la cita termina.\
+                                             'Cancelada' cuando el cliente no llega o cancela."),
             }
     
 
@@ -72,7 +72,6 @@ class Appointment(resource_planning, base_state, Model):
         }
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
-        import ipdb; ipdb.set_trace()
         if service_id:
             service_object = self.pool.get('salon.spa.service').browse(cr, uid, service_id, context=context)
             employee_object = self.pool.get('hr.employee').search(cr, uid, [('service_ids', 'in', service_id)], context=context)
