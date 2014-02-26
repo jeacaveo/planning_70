@@ -64,6 +64,7 @@ class Appointment(resource_planning, base_state, Model):
                                              'Confirmada' cuando el cliente ha llegado.\
                                              'Concluida' cuando la cita termina.\
                                              'Cancelada' cuando el cliente no llega o cancela."),
+            'notes': fields.text('Notas'),
             }
     
 
