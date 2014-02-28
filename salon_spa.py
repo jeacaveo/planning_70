@@ -166,7 +166,8 @@ class hr_employee(osv.osv):
 class product_product(osv.osv):
     _inherit = 'product.product'
     _columns = {
-            'product_unit_equivalent': fields.float('Equivalencia de Unidad',
+            'product_unit_equivalent': fields.float(
+                'Equivalencia de Unidad',
                 help="El equivalente a 1 unidad para el producto. Solo aplica\
                       cuando la Unidad de Medida es distinta de 'Unidad(es)'."
                 ),
@@ -176,7 +177,8 @@ class product_product(osv.osv):
 class product_supplierinfo(osv.osv):
     _inherit = 'product.supplierinfo'
     _columns = {
-            'supplier_unit_equivalent': fields.float('Equivalencia de Unidad',
+            'supplier_unit_equivalent': fields.float(
+                'Equivalencia de Unidad',
                 help="El equivalente a 1 unidad en las ordenes para el\
                       proveedor. Ejemplo: El proveedor suple los productos\
                       en cajas de 24 unidades, este campo debe tener el valor\
