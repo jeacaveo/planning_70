@@ -56,18 +56,18 @@ class Appointment(resource_planning, base_state, Model):
                                        ('open', 'Confirmada'),
                                        ('done', 'Concluida'),
                                        ('cancel', 'Cancelada')],
-                                       string='Estado', size=16, readonly=True, track_visibility='onchange',
+                                       string='Estado', size=16, readonly=True,
+                                       track_visibility='onchange',
                                        help="Este estado marca la cita como:\
                                              'Reservada' cuando se crea.\
-                                             'En Espera'cuando es el dia de la cita,\
+                                             'En Espera' el dia de la cita,\
                                              y el cliente no ha llegado.\
-                                             'Confirmada' cuando el cliente ha llegado.\
-                                             'Concluida' cuando la cita termina.\
-                                             'Cancelada' cuando el cliente no llega o cancela."),
+                                             'Confirmada' el cliente llego.\
+                                             'Concluida' la cita concluida.\
+                                             'Cancelada' no-show, etc."),
             'notes': fields.text('Notas'),
             'active': fields.boolean('Activo', required=False),
             }
-    
 
     _defaults = {
             'state': 'draft',
@@ -76,8 +76,10 @@ class Appointment(resource_planning, base_state, Model):
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
         if service_id:
-            service_object = self.pool.get('salon.spa.service').browse(cr, uid, service_id, context=context)
-            employee_object = self.pool.get('hr.employee').search(cr, uid, [('service_ids', 'in', service_id)], context=context)
+            service_object = self.pool.get('salon.spa.service').\
+                    browse(cr, uid, service_id, context=context)
+            employee_object = self.pool.get('hr.employee').\
+                    search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             return {
                     'value': {'duration': service_object.duration,
                               'price': service_object.service.list_price},
@@ -87,7 +89,7 @@ class Appointment(resource_planning, base_state, Model):
 
     def onchange_appointment_category(self, cr, uid, ids, category_id, context=None):
         if category_id:
-            return {'value': 
+            return {'value':
                         {'service_id': None,
                          'space_id': None,
                          'duration': None,
@@ -101,13 +103,18 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
+
 class Service(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.service'
 
     _columns = {
-            'service': fields.many2one('product.product', 'Nombre', domain=[('type', '=', 'service')], required=True),
+            'service': fields.many2one(
+                'product.product',
+                'Nombre',
+                domain=[('type', '=', 'service')],
+                required=True),
             'duration': fields.float('Tiempo', required=True),
             'categ_id': fields.char('Categoria', required=True),
             'instructions': fields.text('Instrucciones', translate=True),
@@ -119,7 +126,8 @@ class Service(Model):
 
     def onchange_service_service(self, cr, uid, ids, service, context=None):
         if service:
-            service_object = self.pool.get('product.product').browse(cr, uid, service, context=context)
+            service_object = self.pool.get('product.product').\
+                    browse(cr, uid, service, context=context)
             return {'value':
                         {'name': service_object.name,
                          'categ_id': service_object.categ_id.id,
@@ -146,8 +154,12 @@ class Space(Model):
 
 class hr_employee(osv.osv):
     _inherit = 'hr.employee'
-    _columns = { 
-            'service_ids': fields.many2many('salon.spa.service', 'employee_service_rel', 'employee_id','service', 'Servicios'),
+    _columns = {
+            'service_ids': fields.many2many(
+                'salon.spa.service',
+                'employee_service_rel',
+                'employee_id', 'service',
+                'Servicios'),
             }
 
 
@@ -155,7 +167,7 @@ class product_product(osv.osv):
     _inherit = 'product.product'
     _columns = {
             'product_unit_equivalent': fields.float('Equivalencia de Unidad',
-                help="El equivalente a 1 unidad para este producto. Solo aplica\
+                help="El equivalente a 1 unidad para el producto. Solo aplica\
                       cuando la Unidad de Medida es distinta de 'Unidad(es)'."
                 ),
             }
@@ -174,5 +186,8 @@ class product_supplierinfo(osv.osv):
                       productos es diferente de 'Unidad(es)', lo toma del\
                       campo product_unit_equivalent."
                       ),
-            'supplier_unit_equivalent_name': fields.char('Nombre de Equivalencia', size=128, help="Unidad, Caja, Bote, etc."),
+            'supplier_unit_equivalent_name': fields.char(
+                'Nombre de Equivalencia',
+                size=128,
+                help="Unidad, Caja, Bote, etc."),
             }
