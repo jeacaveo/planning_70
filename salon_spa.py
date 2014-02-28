@@ -65,11 +65,13 @@ class Appointment(resource_planning, base_state, Model):
                                              'Concluida' cuando la cita termina.\
                                              'Cancelada' cuando el cliente no llega o cancela."),
             'notes': fields.text('Notas'),
+            'active': fields.boolean('Activo', required=False),
             }
     
 
     _defaults = {
-            'state': 'draft'
+            'state': 'draft',
+            'active': True
         }
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
@@ -146,4 +148,31 @@ class hr_employee(osv.osv):
     _inherit = 'hr.employee'
     _columns = { 
             'service_ids': fields.many2many('salon.spa.service', 'employee_service_rel', 'employee_id','service', 'Servicios'),
-            }   
+            }
+
+
+class product_product(osv.osv):
+    _inherit = 'product.product'
+    _columns = {
+            'product_unit_equivalent': fields.float('Equivalencia de Unidad',
+                help="El equivalente a 1 unidad para este producto. Solo aplica\
+                      cuando la Unidad de Medida es distinta de 'Unidad(es)'."
+                ),
+            }
+
+
+class product_supplierinfo(osv.osv):
+    _inherit = 'product.supplierinfo'
+    _columns = {
+            'supplier_unit_equivalent': fields.float('Equivalencia de Unidad',
+                help="El equivalente a 1 unidad en las ordenes para el\
+                      proveedor. Ejemplo: El proveedor suple los productos\
+                      en cajas de 24 unidades, este campo debe tener el valor\
+                      24 ya que al pedir 1 caja (unidad del proveedor), se\
+                      obtienen los productos deseados (24 unidades). El\
+                      equivalente a 1 unidad cuando la unidad de medida del\
+                      productos es diferente de 'Unidad(es)', lo toma del\
+                      campo product_unit_equivalent."
+                      ),
+            'supplier_unit_equivalent_name': fields.char('Nombre de Equivalencia', size=128, help="Unidad, Caja, Bote, etc."),
+            }
