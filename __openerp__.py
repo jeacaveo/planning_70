@@ -21,7 +21,7 @@
 {
     "name" : "Salon and Spa",
     "version" : "0.2",
-    "author" : "Jean Ventura",
+    "author" : "Ventura Systems",
     "complexity": "normal",
     "description": """
     Required:
