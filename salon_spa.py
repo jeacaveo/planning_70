@@ -90,13 +90,16 @@ class Appointment(resource_planning, base_state, Model):
         if service_id:
             service_object = self.pool.get('salon.spa.service').\
                     browse(cr, uid, service_id, context=context)
+            date, duration  = context['start_date'], service_object.duration,
+            start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            end_date = start_date + timedelta(hours=duration)
 
+            # Space availability validation
             space_ids = []
             for space in service_object.space_ids:
-                space_available = self.check_appointment_availability(cr, uid, ids,\
-                                    'space_id', space.id,
-                                    context['start_date'], service_object.duration,
-                                    context)
+                space_available = self.check_resource_availability(cr, uid, ids,\
+                                    'space_id', space.id, start_date, \
+                                    end_date, duration, context)
                 if space_available:
                     space_ids.append(space.id)
             if space_ids:
@@ -104,16 +107,20 @@ class Appointment(resource_planning, base_state, Model):
             else:
                 assigned_space = None
 
+            # Employee availability validation
             employee_object = self.pool.get('hr.employee').\
                     search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             employee_ids = []
             for employee in employee_object:
-                employee_available = self.check_appointment_availability(cr, uid, ids,\
-                                    'employee_id', employee,
-                                    context['start_date'], service_object.duration,
-                                    context)
+                employee_available= self.check_resource_availability(cr, uid, ids,\
+                                    'employee_id', employee, start_date, \
+                                    end_date, duration, context)
                 if employee_available:
-                    employee_ids.append(employee)
+                    employee_available = self.check_employee_availability(cr, uid, ids,\
+                            employee, start_date, \
+                            end_date, duration, context)
+                    if employee_available:
+                        employee_ids.append(employee)
             if employee_ids:
                 assigned_employee = employee_ids[0]
             else:
@@ -167,15 +174,20 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
-    def check_appointment_availability(self, cr, uid, ids, resource_type, resource, date, duration, context=None):
+    def check_resource_availability(self, cr, uid, ids, resource_type, resource, \
+            start_date, end_date=None, duration=None, context=None):
         """
-        Validates that the specified resource is available.
+        Validates that the specified resource_type/resource is available.
 
-        When dealing with employees (resource_type = 'employee_id'),
-        the work schedule is validated.
+        Either end_date or duration is required. If neither, will return False.
 
         """
 
+        if not end_date:
+            if duration:
+                end_date = start_date + timedelta(hours=duration)
+            else:
+                return False
         appointment_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [(resource_type, '=', resource)], context=context)
 
@@ -185,21 +197,15 @@ class Appointment(resource_planning, base_state, Model):
             # appt = appointment
             appt_start_date = datetime.strptime(appointment_object.start, '%Y-%m-%d %H:%M:%S')
             appt_end_date = appt_start_date + timedelta(hours=appointment_object.duration)
-            new_appt_start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            new_appt_end_date = new_appt_start_date + timedelta(hours=duration)
-            if  (new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date) \
-                or (new_appt_end_date > appt_start_date and new_appt_end_date <= appt_end_date):
+            if  (start_date >= appt_start_date and start_date < appt_end_date) \
+                or (end_date > appt_start_date and end_date <= appt_end_date):
                 return False
-            elif resource_type == 'employee_id':
-                return self.check_employee_availability(cr, uid, ids,\
-                        resource, new_appt_start_date,
-                        new_appt_end_date, duration, context)
         return True
 
     def check_employee_availability(self, cr, uid, ids, employee_id, start_date,
             end_date=None, duration=None, context=None):
         """
-        Validates that the employee is working at the specified time.
+        Validates that the employee is able to work at the specified time.
 
         Either end_date or duration is required. If neither, will return False.
 
