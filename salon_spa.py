@@ -93,7 +93,7 @@ class Appointment(resource_planning, base_state, Model):
 
             space_ids = []
             for space in service_object.space_ids:
-                space_available = self.check_availability(cr, uid, ids,\
+                space_available = self.check_appointment_availability(cr, uid, ids,\
                                     'space_id', space.id,
                                     context['start_date'], service_object.duration,
                                     context)
@@ -108,7 +108,7 @@ class Appointment(resource_planning, base_state, Model):
                     search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             employee_ids = []
             for employee in employee_object:
-                employee_available = self.check_availability(cr, uid, ids,\
+                employee_available = self.check_appointment_availability(cr, uid, ids,\
                                     'employee_id', employee,
                                     context['start_date'], service_object.duration,
                                     context)
@@ -167,9 +167,12 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
-    def check_availability(self, cr, uid, ids, resource_type, resource, date, duration, context=None):
+    def check_appointment_availability(self, cr, uid, ids, resource_type, resource, date, duration, context=None):
         """
         Validates that the specified resource is available.
+
+        When dealing with employees (resource_type = 'employee_id'),
+        the work schedule is validated.
 
         """
 
@@ -187,8 +190,46 @@ class Appointment(resource_planning, base_state, Model):
             if  (new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date) \
                 or (new_appt_end_date > appt_start_date and new_appt_end_date <= appt_end_date):
                 return False
+            elif resource_type == 'employee_id':
+                return self.check_employee_availability(cr, uid, ids,\
+                        resource, new_appt_start_date,
+                        new_appt_end_date, duration, context)
         return True
 
+    def check_employee_availability(self, cr, uid, ids, employee_id, start_date,
+            end_date=None, duration=None, context=None):
+        """
+        Validates that the employee is working at the specified time.
+
+        Either end_date or duration is required. If neither, will return False.
+
+        """
+
+        if not end_date:
+            if duration:
+                end_date = start_date + timedelta(hours=duration)
+            else:
+                return False
+        start_date = fields.datetime.context_timestamp(cr, uid, start_date, context=context)
+        end_date = fields.datetime.context_timestamp(cr, uid, end_date, context=context)
+
+        employee_object = self.pool.get('hr.employee').\
+                browse(cr, uid, employee_id, context=context)
+        appt_day_of_week = start_date.weekday()
+        appt_start_hour = start_date.hour
+        appt_end_hour = end_date.hour + (end_date.minute/60)  # hour in float format
+
+        # if employee has no work schedule assigned, skip it
+        if not employee_object.working_hours:
+            return False
+
+        # appt = appointment
+        for period in employee_object.working_hours.attendance_ids:
+            if int(period.dayofweek) == appt_day_of_week:
+                if appt_start_hour >= period.hour_from \
+                    and appt_end_hour <= period.hour_to:
+                    return True
+        return False 
 
 class Service(Model):
     _inherit = 'resource.resource'
