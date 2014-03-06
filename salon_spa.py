@@ -245,6 +245,7 @@ class hr_employee(osv.osv):
                 'employee_service_rel',
                 'employee_id', 'service',
                 'Servicios'),
+            'working_hours': fields.many2one('resource.calendar','Horario de Trabajo'),
             }
 
 

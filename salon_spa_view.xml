@@ -6,6 +6,9 @@
             <field name="model">hr.employee</field>
             <field name="inherit_id" ref="hr.view_employee_form"/>
             <field name="arch" type="xml">
+                <field name='active' position='after'>
+                    <field name="working_hours" />
+                </field>
                 <notebook position="inside">
                     <page string="Servicios">
                         <field name="service_ids" colspan="4" nolabel="1"/>
