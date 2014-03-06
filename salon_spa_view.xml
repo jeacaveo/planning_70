@@ -36,7 +36,7 @@
                 </field>
             </field>
         </record>
-        <!-- Supplier Product tree view -->
+        <!-- Supplier Product tree view 
         <record id="salon_spa_product_supplierinfo_tree_view" model="ir.ui.view">
             <field name="name">salon.spa.product.supplierinfo.tree.view</field>
             <field name="model">product.supplierinfo</field>
@@ -47,7 +47,19 @@
                     <field name="supplier_unit_equivalent" />
                 </field>
             </field>
+        </record> -->
+        <!-- Supplier Product tree view -->
+        <record id="salon_spa_product_product_tree_view" model="ir.ui.view">
+            <field name="name">salon.spa.product.product.tree.view</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_product_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="default_code" position="after">
+                    <field name="categ_id" />
+                </field>
+            </field>
         </record>
+
 
         <!-- Appointment -->
         <!-- Appointment calendar view -->
@@ -77,13 +89,13 @@
                     <sheet string="Citas">
                         <group col="4">
                             <field name="client_id" />
-                            <field name="start" />
-                            <field name="category_id" on_change="onchange_appointment_category(category_id)" />
-                            <field name="space_id" domain="[('category_id','=',category_id)]" />
-                            <field name="service_id" domain="[('service.categ_id','=',category_id)]" on_change="onchange_appointment_service(service_id)" />
+                            <field name="start" on_change="onchange_appointment_start()" />
+                            <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, context)" />
                             <field name="duration" widget="float_time" />
                             <field name="employee_id" />
+                            <field name="space_id" />
                             <field name="price" readonly="1" />
+                            <field name="category_id" invisible="True" />
                         </group>
                         <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
                         <div class="oe_chatter">
@@ -103,7 +115,6 @@
                     <field name="duration" widget="float_time" />
                     <field name="client_id" />
                     <field name="employee_id" />
-                    <field name="category_id" />
                     <field name="service_id" />
                     <field name="space_id" />
                     <field name="state" />
@@ -137,6 +148,9 @@
                         <page string='Instrucciones'>
                             <field name='instructions' colspan='4' nolabel='1' placeholder="Notas y Observaciones." />
                         </page>
+                        <page string="Espacios Permitidos">
+                            <field name="space_ids" colspan="4" nolabel="1" />
+                        </page>
                     </notebook>
                 </form>
             </field>
@@ -162,7 +176,6 @@
             <field name="arch" type="xml">
                 <form string="Espacios">
                     <field name="name" />
-                    <field name="category_id" />
                 </form>
             </field>
         </record>
@@ -173,7 +186,6 @@
             <field name="arch" type="xml">
                 <tree string="Espacios">
                     <field name="name" />
-                    <field name="category_id" />
                 </tree>
             </field>
         </record>

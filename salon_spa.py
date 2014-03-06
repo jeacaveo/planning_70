@@ -18,6 +18,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+from datetime import datetime, timedelta
+
 from openerp.addons.base_status.base_state import base_state
 from openerp.osv.orm import Model
 from openerp.osv import fields, osv
@@ -38,14 +40,14 @@ class Appointment(resource_planning, base_state, Model):
             'name': fields.char('Nombre', size=128),
             'start': fields.datetime('Inicio', required=True),
             'duration': fields.float(u'Duración', required=True),
-            'price': fields.float(u'Precio', required=True),
+            'price': fields.float(u'Precio'),
             'employee_id': fields.many2one(
                 'hr.employee', 'Empleado', required=True),
             'client_id': fields.many2one(
                 'res.partner', 'Cliente',
                 domain=[('supplier', '=', False)], required=True,),
             'category_id': fields.many2one(
-                'product.category', 'Tipo de Servicio',
+                'product.category', 'Familia',
                 domain=[('parent_id', '=', 'Servicios')], required=True),
             'service_id': fields.many2one(
                 'salon.spa.service', 'Servicio', required=True),
@@ -76,32 +78,75 @@ class Appointment(resource_planning, base_state, Model):
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
         if service_id:
+            space_ids = []
             service_object = self.pool.get('salon.spa.service').\
                     browse(cr, uid, service_id, context=context)
             employee_object = self.pool.get('hr.employee').\
                     search(cr, uid, [('service_ids', 'in', service_id)], context=context)
+
+            for space in service_object.space_ids:
+                space_available = self.check_availability(cr, uid, ids,\
+                                    'space_id', space.id,
+                                    context['start_date'], service_object.duration,
+                                    context)
+                if space_available:
+                    space_ids.append(space.id)
+
+            if space_ids:
+                assigned_space = space_ids[0]
+            else:
+                assigned_space = None
+
             return {
                     'value': {'duration': service_object.duration,
-                              'price': service_object.service.list_price},
-                    'domain': {'employee_id': [('id', 'in', employee_object)]},
+                              'price': service_object.service.list_price,
+                              'space_id': assigned_space,
+                              'category_id': service_object.categ_id,
+                              'employee_id': None
+                        },
+                    'domain': {'employee_id': [('id', 'in', employee_object)],
+                               'space_id': [('id', 'in', space_ids)]
+                        },
                    }
-        return {}
+        return {'value':
+                    {'price': 0,
+                     'space_id': None,
+                     'duration': 0,
+                     'employee_id': None,
+                     'category_id': None,
+                     }
+                }
 
-    def onchange_appointment_category(self, cr, uid, ids, category_id, context=None):
-        if category_id:
-            return {'value':
-                        {'service_id': None,
-                         'space_id': None,
-                         'duration': None,
-                         'employee_id': None,
-                         }
-                    }
-        return {}
+    def onchange_appointment_start(self, cr, uid, ids, context=None):
+        return {'value':
+                    {'service_id': None,
+                     'space_id': None,
+                     'duration': 0,
+                     'employee_id': None,
+                     'category_id': None,
+                     'price': 0,
+                     }
+                }
 
     def case_open(self, cr, uid, ids, context=None):
         """ Opens case """
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
+
+    def check_availability(self, cr, uid, ids, resource_type, resource, date, duration, context=None):
+        appointment_ids = self.pool.get('salon.spa.appointment').\
+                search(cr, uid, [(resource_type, '=', resource)], context=context)
+
+        for appointment in appointment_ids:
+            appointment_object = self.pool.get('salon.spa.appointment').\
+                    browse(cr, uid, appointment, context=context)
+            # appt = appointment
+            appt_start_date = datetime.strptime(appointment_object.start, '%Y-%m-%d %H:%M:%S')
+            appt_end_date = appt_start_date + (timedelta(hours=appointment_object.duration) )
+            new_appt_start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            if  new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date:
+                return False
+        return True
 
 
 class Service(Model):
@@ -118,6 +163,11 @@ class Service(Model):
             'duration': fields.float('Tiempo', required=True),
             'categ_id': fields.char('Categoria', required=True),
             'instructions': fields.text('Instrucciones', translate=True),
+            'space_ids': fields.many2many(
+                'salon.spa.space',
+                'service_space_rel',
+                'service_id', 'space_id',
+                'Espacios Permitidos'),
             }
 
     _defaults = {
@@ -140,12 +190,6 @@ class Space(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.space'
-
-    _columns = {
-            'category_id': fields.many2one(
-                'product.category', 'Tipo de Servicio',
-                domain=[('parent_id', '=', 'Servicios')], required=True),
-            }
 
     _defaults = {
             'resource_type': 'material',
