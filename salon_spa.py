@@ -77,13 +77,21 @@ class Appointment(resource_planning, base_state, Model):
         }
 
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
+        """
+        Validates if resources (space and employee) are available for the
+        time frame selected.
+
+        Assigns first available resource and sets proper domain.
+
+        Assigns prices and duration according to service.
+
+        """
+
         if service_id:
-            space_ids = []
             service_object = self.pool.get('salon.spa.service').\
                     browse(cr, uid, service_id, context=context)
-            employee_object = self.pool.get('hr.employee').\
-                    search(cr, uid, [('service_ids', 'in', service_id)], context=context)
 
+            space_ids = []
             for space in service_object.space_ids:
                 space_available = self.check_availability(cr, uid, ids,\
                                     'space_id', space.id,
@@ -91,20 +99,34 @@ class Appointment(resource_planning, base_state, Model):
                                     context)
                 if space_available:
                     space_ids.append(space.id)
-
             if space_ids:
                 assigned_space = space_ids[0]
             else:
                 assigned_space = None
+
+            employee_object = self.pool.get('hr.employee').\
+                    search(cr, uid, [('service_ids', 'in', service_id)], context=context)
+            employee_ids = []
+            for employee in employee_object:
+                employee_available = self.check_availability(cr, uid, ids,\
+                                    'employee_id', employee,
+                                    context['start_date'], service_object.duration,
+                                    context)
+                if employee_available:
+                    employee_ids.append(employee)
+            if employee_ids:
+                assigned_employee = employee_ids[0]
+            else:
+                assigned_employee = None
 
             return {
                     'value': {'duration': service_object.duration,
                               'price': service_object.service.list_price,
                               'space_id': assigned_space,
                               'category_id': service_object.categ_id,
-                              'employee_id': None
+                              'employee_id':assigned_employee 
                         },
-                    'domain': {'employee_id': [('id', 'in', employee_object)],
+                    'domain': {'employee_id': [('id', 'in', employee_ids)],
                                'space_id': [('id', 'in', space_ids)]
                         },
                    }
@@ -118,6 +140,11 @@ class Appointment(resource_planning, base_state, Model):
                 }
 
     def onchange_appointment_start(self, cr, uid, ids, context=None):
+        """
+        Resets all fields when start date changes.
+
+        """
+
         return {'value':
                     {'service_id': None,
                      'space_id': None,
@@ -129,11 +156,23 @@ class Appointment(resource_planning, base_state, Model):
                 }
 
     def case_open(self, cr, uid, ids, context=None):
-        """ Opens case """
+        """
+        Re-write of base state case open to only change state.
+        (Just like the rest of the states)
+        
+        Opens case
+        
+        """
+
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
     def check_availability(self, cr, uid, ids, resource_type, resource, date, duration, context=None):
+        """
+        Validates that the specified resource is available.
+
+        """
+
         appointment_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [(resource_type, '=', resource)], context=context)
 
@@ -142,9 +181,11 @@ class Appointment(resource_planning, base_state, Model):
                     browse(cr, uid, appointment, context=context)
             # appt = appointment
             appt_start_date = datetime.strptime(appointment_object.start, '%Y-%m-%d %H:%M:%S')
-            appt_end_date = appt_start_date + (timedelta(hours=appointment_object.duration) )
+            appt_end_date = appt_start_date + timedelta(hours=appointment_object.duration)
             new_appt_start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            if  new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date:
+            new_appt_end_date = new_appt_start_date + timedelta(hours=duration)
+            if  new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date \
+                and new_appt_end_date >= appt_start_date and new_appt_end_date < appt_end_date:
                 return False
         return True
 
@@ -176,11 +217,11 @@ class Service(Model):
 
     def onchange_service_service(self, cr, uid, ids, service, context=None):
         if service:
-            service_object = self.pool.get('product.product').\
+            product_object = self.pool.get('product.product').\
                     browse(cr, uid, service, context=context)
             return {'value':
-                        {'name': service_object.name,
-                         'categ_id': service_object.categ_id.id,
+                        {'name': product_object.name,
+                         'categ_id': product_object.categ_id.id,
                              }
                    }
         return {}
