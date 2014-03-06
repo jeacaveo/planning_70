@@ -184,8 +184,8 @@ class Appointment(resource_planning, base_state, Model):
             appt_end_date = appt_start_date + timedelta(hours=appointment_object.duration)
             new_appt_start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
             new_appt_end_date = new_appt_start_date + timedelta(hours=duration)
-            if  new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date \
-                and new_appt_end_date >= appt_start_date and new_appt_end_date < appt_end_date:
+            if  (new_appt_start_date >= appt_start_date and new_appt_start_date < appt_end_date) \
+                or (new_appt_end_date > appt_start_date and new_appt_end_date <= appt_end_date):
                 return False
         return True
 
