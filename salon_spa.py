@@ -231,15 +231,13 @@ class Appointment(resource_planning, base_state, Model):
         appt_end_hour = end_date.hour + (end_date.minute/60)  # hour in float format
 
         # if employee has no work schedule assigned, skip it
-        if not employee_object.working_hours:
-            return False
-
-        # appt = appointment
-        for period in employee_object.working_hours.attendance_ids:
-            if int(period.dayofweek) == appt_day_of_week:
-                if appt_start_hour >= period.hour_from \
-                    and appt_end_hour <= period.hour_to:
-                    return True
+        if employee_object.working_hours:
+            # appt = appointment
+            for period in employee_object.working_hours.attendance_ids:
+                if int(period.dayofweek) == appt_day_of_week:
+                    if appt_start_hour >= period.hour_from \
+                        and appt_end_hour <= period.hour_to:
+                        return True
         return False 
 
     def write(self, cr, uid, ids, vals, context=None):
