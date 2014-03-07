@@ -256,11 +256,17 @@ class Appointment(resource_planning, base_state, Model):
             raise except_orm(_('Error'), _('%s is not '
                 'programmed to work at this time!') % (
                 employee_object.name))
+        # Modificar la factura si:
+        # Si se modifica la cita
+        # Si se elimina o cancela la cita
+            # Si el cliente no tiene mas citas en el dia, eliminar factura.
 
         return result
 
     def create(self, cr, uid, vals, context=None):
         id = super(Appointment, self).create(cr, uid, vals, context)
+
+        ids = vals
 
         # TODO refactor to avoid repetition
         # Validate employee work schedule
@@ -275,6 +281,32 @@ class Appointment(resource_planning, base_state, Model):
             raise except_orm(_('Error'), _('%s is not '
                 'programmed to work at this time!') % (
                 employee_object.name))
+
+        # Invoice creation/modification
+        appointment_date = vals['start']
+        client_object = self.pool.get('res.partner').\
+                browse(cr, uid, vals['client_id'], context=context)
+        invoice_object = self.pool.get('account.invoice').\
+                search(cr, uid, [('date_invoice', '=', appointment_date),
+                                 ('partner_id', '=', client_object.id)],
+                       context=context)
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        if invoice_object:
+            invoice_id = invoice_object[0]
+        else:  # create it
+            invoice_id = self.pool.get('account.invoice').create(cr, uid,{
+                'partner_id' : client_object.id,
+                'date_invoice' : appointment_date,
+                'account_id': client_object.property_account_receivable.id,
+                })
+        # add service to invoice
+        self.pool.get('account.invoice.line').create(cr, uid,{ \
+            'invoice_id' : invoice_id, \
+            'name' : service_object.service.name, \
+            'product_id' : service_object.service.id, \
+            'price_unit' : service_object.service.list_price, \
+            })
 
         return id
 
