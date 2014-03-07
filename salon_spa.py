@@ -21,7 +21,8 @@
 from datetime import datetime, timedelta
 
 from openerp.addons.base_status.base_state import base_state
-from openerp.osv.orm import Model
+from openerp.tools.translate import _
+from openerp.osv.orm import Model, except_orm
 from openerp.osv import fields, osv
 from openerp.addons.resource_planning.resource_planning import resource_planning
 
@@ -183,6 +184,10 @@ class Appointment(resource_planning, base_state, Model):
 
         """
 
+        # TODO REFACTOR all validations related to resource availability can be
+        # checked with self._assert_availability/self._check_availability.
+        # (Employee work schedule doesn't fit here,
+        #  unless modifications are done to those methods.)
         if not end_date:
             if duration:
                 end_date = start_date + timedelta(hours=duration)
@@ -236,6 +241,44 @@ class Appointment(resource_planning, base_state, Model):
                     and appt_end_hour <= period.hour_to:
                     return True
         return False 
+
+    def write(self, cr, uid, ids, vals, context=None):
+        result = super(Appointment, self).write(cr, uid, ids, vals, context)
+
+        # TODO refactor to avoid repetition
+        # Validate employee work schedule
+        start_date = datetime.strptime(vals['start'], '%Y-%m-%d %H:%M:%S')
+        end_date = start_date + timedelta(hours=vals['duration'])
+        employee_available = self.check_employee_availability(cr, uid, ids,\
+                vals['employee_id'], start_date, \
+                end_date, vals['duration'], context)
+        if not employee_available:
+            employee_object = self.pool.get('hr.employee').\
+                    browse(cr, uid, vals['employee_id'], context=context)
+            raise except_orm(_('Error'), _('%s is not '
+                'programmed to work at this time!') % (
+                employee_object.name))
+
+        return result
+
+    def create(self, cr, uid, vals, context=None):
+        id = super(Appointment, self).create(cr, uid, vals, context)
+
+        # TODO refactor to avoid repetition
+        # Validate employee work schedule
+        start_date = datetime.strptime(vals['start'], '%Y-%m-%d %H:%M:%S')
+        end_date = start_date + timedelta(hours=vals['duration'])
+        employee_available = self.check_employee_availability(cr, uid, ids,\
+                vals['employee_id'], start_date, \
+                end_date, vals['duration'], context)
+        if not employee_available:
+            employee_object = self.pool.get('hr.employee').\
+                    browse(cr, uid, vals['employee_id'], context=context)
+            raise except_orm(_('Error'), _('%s is not '
+                'programmed to work at this time!') % (
+                employee_object.name))
+
+        return id
 
 class Service(Model):
     _inherit = 'resource.resource'
