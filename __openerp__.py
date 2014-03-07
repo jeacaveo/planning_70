@@ -31,6 +31,7 @@
     "category" : "",
     "depends" : [
         'hr',
+        'account',
         'mrp',
         'resource_planning',
     ],
