@@ -128,7 +128,7 @@ class Appointment(resource_planning, base_state, Model):
                 assigned_employee = None
 
             return {
-                    'value': {'duration': service_object.duration,
+                    'value': {'duration': duration,
                               'price': service_object.service.list_price,
                               'space_id': assigned_space,
                               'category_id': service_object.categ_id,
@@ -241,25 +241,95 @@ class Appointment(resource_planning, base_state, Model):
         return False 
 
     def write(self, cr, uid, ids, vals, context=None):
+        # appt = appointment
+        # Get values previous to save
+        # prev_appt holds state of appt previous to save
+        appointment_object = self.pool.get('salon.spa.appointment').\
+                browse(cr, uid, ids[0], context=context)
+        prev_appt = {'employee_id': appointment_object.employee_id.id,
+                     'start': appointment_object.start,
+                     'client_id': appointment_object.client_id.id,
+                     'duration': appointment_object.duration,
+                     'service_id': appointment_object.service_id.id,
+                     }
+
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
+        # current_appt holds final state of appt
+        # (Take all values not changed from previously saved appt)
+        current_appt = {}
+        for key, val in vals.iteritems():
+            current_appt[key] = val
+        for key, val in prev_appt.iteritems():
+            if key not in current_appt:
+                current_appt[key] = val
+
+        if 'duration' in vals:  # Duration changes if date, service or duration is modified
+            # TODO refactor to avoid repetition
+            # Validate employee work schedule
+            start_date = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S')
+            end_date = start_date + timedelta(hours=current_appt['duration'])
+            employee_available = self.check_employee_availability(cr, uid, ids,\
+                    current_appt['employee_id'], start_date, \
+                    end_date, current_appt['duration'], context)
+            if not employee_available:
+                employee_object = self.pool.get('hr.employee').\
+                        browse(cr, uid, current_appt['employee_id'], context=context)
+                raise except_orm(_('Error'), _('%s is not '
+                    'programmed to work at this time!') % (
+                    employee_object.name))
+
+        # If one of the invoice related fields changes
+        # (client_id, start, service_id), delete invoice line for appt.
+        # Later an invoice is created or modificed with the new info.
+        if 'client_id' in vals \
+            or 'start' in vals \
+            or 'service_id' in vals:
+            if current_appt['client_id'] != prev_appt['client_id'] \
+                or current_appt['start'] != prev_appt['start'] \
+                or current_appt['service_id'] != prev_appt['service_id']:
+                prev_invoice_line_object = self.pool.get('account.invoice.line').\
+                        search(cr, uid, [('appointment_id', '=', ids[0])],
+                               context=context)
+                del_invoice_line_object = self.pool.get('account.invoice.line').\
+                        unlink(cr, uid, prev_invoice_line_object[0], context=context)
+                if not del_invoice_line_object:
+                    raise 
+
         # TODO refactor to avoid repetition
-        # Validate employee work schedule
-        start_date = datetime.strptime(vals['start'], '%Y-%m-%d %H:%M:%S')
-        end_date = start_date + timedelta(hours=vals['duration'])
-        employee_available = self.check_employee_availability(cr, uid, ids,\
-                vals['employee_id'], start_date, \
-                end_date, vals['duration'], context)
-        if not employee_available:
-            employee_object = self.pool.get('hr.employee').\
-                    browse(cr, uid, vals['employee_id'], context=context)
-            raise except_orm(_('Error'), _('%s is not '
-                'programmed to work at this time!') % (
-                employee_object.name))
-        # Modificar la factura si:
-        # Si se modifica la cita
+        # Look for an existing invoice for client/date
+        client_object = self.pool.get('res.partner').\
+                browse(cr, uid, current_appt['client_id'], context=context)
+        invoice_object = self.pool.get('account.invoice').\
+                search(cr, uid,
+                       [('date_invoice', '=', current_appt['start']),
+                        ('partner_id', '=', client_object.id)],
+                       context=context)
+
+        # Invoice creation/modification
+        if invoice_object:
+            invoice_id = invoice_object[0]
+        else:  # create it
+            invoice_id = self.pool.get('account.invoice').create(cr, uid,{
+                'partner_id' : client_object.id,
+                'date_invoice' : current_appt['start'],
+                'account_id': client_object.property_account_receivable.id,
+                })
+        # add service to invoice
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, current_appt['service_id'], context=context)
+        self.pool.get('account.invoice.line').create(cr, uid,{ \
+            'invoice_id' : invoice_id, \
+            'name' : service_object.service.name, \
+            'product_id' : service_object.service.id, \
+            'price_unit' : service_object.service.list_price, \
+            'appointment_id' : ids[0], \
+            })
+
         # Si se elimina o cancela la cita
-            # Si el cliente no tiene mas citas en el dia, eliminar factura.
+            # eliminar servicio de factura del cliente
+        # Luego de cada eliminacion de servicio, se valida si
+        # la factura no tiene servicios. Se elimina factura si es asi.
 
         return result
 
@@ -282,6 +352,7 @@ class Appointment(resource_planning, base_state, Model):
                 'programmed to work at this time!') % (
                 employee_object.name))
 
+        # TODO refactor to avoid repetition
         # Invoice creation/modification
         appointment_date = vals['start']
         client_object = self.pool.get('res.partner').\
@@ -290,8 +361,6 @@ class Appointment(resource_planning, base_state, Model):
                 search(cr, uid, [('date_invoice', '=', appointment_date),
                                  ('partner_id', '=', client_object.id)],
                        context=context)
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, vals['service_id'], context=context)
         if invoice_object:
             invoice_id = invoice_object[0]
         else:  # create it
@@ -301,11 +370,14 @@ class Appointment(resource_planning, base_state, Model):
                 'account_id': client_object.property_account_receivable.id,
                 })
         # add service to invoice
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
         self.pool.get('account.invoice.line').create(cr, uid,{ \
             'invoice_id' : invoice_id, \
             'name' : service_object.service.name, \
             'product_id' : service_object.service.id, \
             'price_unit' : service_object.service.list_price, \
+            'appointment_id' : id, \
             })
 
         return id
@@ -398,4 +470,11 @@ class product_supplierinfo(osv.osv):
                 'Nombre de Equivalencia',
                 size=128,
                 help="Unidad, Caja, Bote, etc."),
+            }
+
+class account_invoice_line(osv.osv):
+    _inherit = 'account.invoice.line'
+    _columns = {
+            'appointment_id': fields.many2one(
+                'salon.spa.appointment', 'Appointment'),
             }
