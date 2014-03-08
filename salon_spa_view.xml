@@ -230,7 +230,7 @@
             view_mode="calendar,tree,form" />
         <act_window
             id="action_checkout"
-            name="Facturas"
+            name="Caja"
             res_model="account.invoice"
             view_type="form"
             view_mode="tree,form" />
