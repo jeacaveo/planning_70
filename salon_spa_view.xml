@@ -1,10 +1,14 @@
 <openerp>
     <data>
-        <record id="hr_hr_employee_services_view_form" model="ir.ui.view">
-            <field name="name">hr.hr.employee.services.view.form</field>
+        <!-- Employees form view -->
+        <record id="salon_spa_employee_services_view_form" model="ir.ui.view">
+            <field name="name">salon.spa.employee.services.view.form</field>
             <field name="model">hr.employee</field>
             <field name="inherit_id" ref="hr.view_employee_form"/>
             <field name="arch" type="xml">
+                <field name='active' position='after'>
+                    <field name="working_hours" />
+                </field>
                 <notebook position="inside">
                     <page string="Servicios">
                         <field name="service_ids" colspan="4" nolabel="1"/>
@@ -12,7 +16,90 @@
                 </notebook>
             </field>
         </record>
+        <!-- Product normal form view -->
+        <record id="salon_spa_product_normal_form_view" model="ir.ui.view">
+            <field name="name">salon.spa.product.normal.form.view</field>
+            <field name="model">product.product</field>
+            <field name="inherit_id" ref="product.product_normal_form_view"/>
+            <field name="arch" type="xml">
+                <field name="list_price" position="after">
+                    <field name="product_unit_equivalent" />
+                </field>
+            </field>
+        </record>
+        <!-- Supplier Product form view -->
+        <record id="salon_spa_product_supplierinfo_form_view" model="ir.ui.view">
+            <field name="name">salon.spa.product.supplierinfo.form.view</field>
+            <field name="model">product.supplierinfo</field>
+            <field name="inherit_id" ref="product.product_supplierinfo_form_view"/>
+            <field name="arch" type="xml">
+                <field name="delay" position="after">
+                    <field name="supplier_unit_equivalent_name" />
+                    <field name="supplier_unit_equivalent" />
+                </field>
+            </field>
+        </record>
+        <!-- Supplier Product tree view 
+        <record id="salon_spa_product_supplierinfo_tree_view" model="ir.ui.view">
+            <field name="name">salon.spa.product.supplierinfo.tree.view</field>
+            <field name="model">product.supplierinfo</field>
+            <field name="inherit_id" ref="product.product_supplierinfo_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="min_qty" position="after">
+                    <field name="supplier_unit_equivalent_name" />
+                    <field name="supplier_unit_equivalent" />
+                </field>
+            </field>
+        </record> -->
+        <!-- Supplier Product tree view -->
+        <record id="salon_spa_product_product_tree_view" model="ir.ui.view">
+            <field name="name">salon.spa.product.product.tree.view</field>
+            <field name="model">product.product</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="product.product_product_tree_view"/>
+            <field name="arch" type="xml">
+                <field name="default_code" position="after">
+                    <field name="categ_id" />
+                </field>
+            </field>
+        </record>
+        <record id="salon_spa_invoice_tree" model="ir.ui.view">
+            <field name="name">salon.spa.account.invoice.tree</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.invoice_tree"/>
+            <field name="arch" type="xml">
+                <field name="date_invoice" position="replace">
+                    <field name="partner_id" groups="base.group_user" />
+                </field>
+                <field name="partner_id" position="replace">
+                    <field name="date_invoice" />
+                </field>
+                <field name="user_id" position="replace">
+                    <field name="user_id" invisible="1"/>
+                </field>
+                <field name="date_due" position="replace">
+                    <field name="date_due" invisible="1"/>
+                </field>
+                <field name="origin" position="replace">
+                    <field name="date_due" invisible="1"/>
+                </field>
+            </field>
+        </record>
+        <!-- Account Invoice search view -->
+        <record id="salon_spa_view_account_invoice_filter" model="ir.ui.view">
+            <field name="name">salon.spa.view.account.invoice.filter</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+            <field name="arch" type="xml">
+                <field name="number" position="after">
+                    <field name="date_invoice" string="Fecha" />
+                </field>
+            </field>
+        </record>
 
+
+        <!-- Appointment -->
+        <!-- Appointment calendar view -->
         <record id="salon_spa_appointment_calendar" model="ir.ui.view">
             <field name="name">salon.spa.appointment.calendar</field>
             <field name="model">salon.spa.appointment</field>
@@ -25,22 +112,37 @@
                 </calendar>
             </field>
         </record>
+        <!-- Appointment form view -->
         <record id="salon_spa_appointment_form" model="ir.ui.view">
             <field name="name">salon.spa.appointment.form</field>
             <field name="model">salon.spa.appointment</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
-                <form string="Citas">
-                    <field name="client_id" />
-                    <field name="start" />
-                    <field name="category_id" on_change="onchange_appointment_category(category_id)" />
-                    <field name="space_id" domain="[('category_id','=',category_id)]" />
-                    <field name="service_id" domain="[('service.categ_id','=',category_id)]" on_change="onchange_appointment_service(service_id)" />
-                    <field name="duration" widget="float_time" />
-                    <field name="employee_id" />
+                <form string="Citas" version="7.0">
+                    <header>
+                        <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
+                        <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
+                    </header>
+                    <sheet string="Citas">
+                        <group col="4">
+                            <field name="client_id" />
+                            <field name="start" on_change="onchange_appointment_start()" />
+                            <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, context)" />
+                            <field name="duration" widget="float_time" />
+                            <field name="employee_id" />
+                            <field name="space_id" />
+                            <field name="price" readonly="1" />
+                            <field name="category_id" invisible="True" />
+                        </group>
+                        <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
+                        <div class="oe_chatter">
+                        </div>
+                        <!-- TODO remove extra space at the bottom of the view -->
+                    </sheet>
                 </form>
             </field>
         </record>
+        <!-- Appointment tree view -->
         <record id="salon_spa_appointment_tree" model="ir.ui.view">
             <field name="name">salon.spa.appointment.tree</field>
             <field name="model">salon.spa.appointment</field>
@@ -50,13 +152,25 @@
                     <field name="duration" widget="float_time" />
                     <field name="client_id" />
                     <field name="employee_id" />
-                    <field name="category_id" />
                     <field name="service_id" />
                     <field name="space_id" />
+                    <field name="state" />
+                    <button name="case_pending" string="En Espera" type="object"
+                            states="open" icon="gtk-undo"/>
+                    <button name="case_open" string="Confirmar" type="object"
+                            states="pending" icon="gtk-jump-to"/>
+                    <button name="case_close" string="Concluida" type="object"
+                            states="open" icon="gtk-apply"/>
+                    <button name="case_cancel" string="Cancel" type="object"
+                            states="draft,pending,open" icon="gtk-cancel"/>
+                    <button name="case_pending" string="Restaurar" type="object"
+                            states="done,cancel" icon="gtk-refresh"/>
                 </tree>
             </field>
         </record>
 
+        <!-- Service -->
+        <!-- Service form view -->
         <record id="salon_spa_service_form" model="ir.ui.view">
             <field name="name">salon.spa.service.form</field>
             <field name="model">salon.spa.service</field>
@@ -71,10 +185,14 @@
                         <page string='Instrucciones'>
                             <field name='instructions' colspan='4' nolabel='1' placeholder="Notas y Observaciones." />
                         </page>
+                        <page string="Espacios Permitidos">
+                            <field name="space_ids" colspan="4" nolabel="1" />
+                        </page>
                     </notebook>
                 </form>
             </field>
         </record>
+        <!-- Service tree view -->
         <record id="salon_spa_service_tree" model="ir.ui.view">
             <field name="name">salon.spa.service.tree</field>
             <field name="model">salon.spa.service</field>
@@ -86,6 +204,8 @@
             </field>
         </record>
 
+        <!-- Space-->
+        <!-- Space form view -->
         <record id="salon_spa_space_form" model="ir.ui.view">
             <field name="name">salon.spa.space.form</field>
             <field name="model">salon.spa.space</field>
@@ -93,17 +213,16 @@
             <field name="arch" type="xml">
                 <form string="Espacios">
                     <field name="name" />
-                    <field name="category_id" />
                 </form>
             </field>
         </record>
+        <!-- Space tree view -->
         <record id="salon_spa_space_tree" model="ir.ui.view">
             <field name="name">salon.spa.space.tree</field>
             <field name="model">salon.spa.space</field>
             <field name="arch" type="xml">
                 <tree string="Espacios">
                     <field name="name" />
-                    <field name="category_id" />
                 </tree>
             </field>
         </record>
@@ -115,6 +234,19 @@
             res_model="salon.spa.appointment"
             view_type="form"
             view_mode="calendar,tree,form" />
+        <act_window
+            id="action_checkout"
+            name="Caja"
+            res_model="account.invoice"
+            view_type="form"
+            view_mode="tree,form" />
+        <!--context="{'search_default_date_invoice': [date_invoice], 'default_date_invoice': date_invoice}" /> -->
+        <act_window
+            id="action_view_client"
+            name="Clientes"
+            res_model="res.partner"
+            view_type="form"
+            view_mode="tree,form" />
         <act_window
             id="action_service"
             name="Servicios"
@@ -130,10 +262,27 @@
 
 
         <menuitem id="menu_root" name="Salon y Spa" />
-        <menuitem id="menu_planning" name="Planificación" parent="menu_root" />
-        <menuitem id="menu_appointment" action="action_appointment" parent="menu_planning" />
-        <menuitem id="menu_configuration" name="Configuración" parent="menu_root" />
-        <menuitem id="menu_service" action="action_service" parent="menu_configuration" sequence="1" />
-        <menuitem id="menu_space" action="action_space" parent="menu_configuration" sequence="2" />
+            <menuitem id="menu_planning" name="Planificación" parent="menu_root" sequence="1" />
+                <menuitem id="menu_appointment" action="action_appointment" parent="menu_planning" sequence="1"/>
+                <menuitem id="menu_checkout" action="action_checkout" parent="menu_planning" sequence="2"/>
+            <menuitem id="menu_configuration" name="Configuración" parent="menu_root" sequence="2" />
+                <menuitem id="menu_view_client" action="action_view_client" parent="menu_configuration" sequence="1" />
+                <menuitem id="menu_service" action="action_service" parent="menu_configuration" sequence="2" />
+                <menuitem id="menu_space" action="action_space" parent="menu_configuration" sequence="3" />
+
+        <!-- Account Invoice form view -->
+        <record id="salon_spa_account_invoice_form_view" model="ir.actions.act_window.view">
+            <field eval="211" name="sequence"/>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="account.invoice_form"/>
+            <field name="act_window_id" ref="action_checkout"/>
+         </record>
+        <!-- Account Invoice tree view -->
+        <record id="salon_spa_account_invoice_tree_view" model="ir.actions.act_window.view">
+            <field eval="210" name="sequence"/>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="account.invoice_tree"/>
+            <field name="act_window_id" ref="action_checkout"/>
+         </record>
     </data>
 </openerp>
