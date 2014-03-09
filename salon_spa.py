@@ -480,6 +480,11 @@ class product_supplierinfo(osv.osv):
             }
 
 
+class account_invoice(osv.osv):
+    _inherit = 'account.invoice'
+    _order = "date_invoice, partner_id"
+
+
 class account_invoice_line(osv.osv):
     _inherit = 'account.invoice.line'
     _columns = {
