@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Salon and Spa",
-    "version" : "0.2",
+    "version" : "0.3",
     "author" : "Ventura Systems",
     "complexity": "normal",
     "description": """
