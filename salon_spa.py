@@ -287,45 +287,49 @@ class Appointment(resource_planning, base_state, Model):
                     'programmed to work at this time!') % (
                     employee_object.name))
 
-        # If one of the invoice related fields changes
-        # (client_id, start, service_id), delete invoice line for appt.
-        # Later an invoice is created or modificed with the new info.
+        # If one of the orders related fields changes
+        # (client_id, start, service_id), delete order line for appt.
+        # Later an order is created or modificed with the new info.
         if 'client_id' in vals \
             or 'start' in vals \
             or 'service_id' in vals:
             if current_appt['client_id'] != prev_appt['client_id'] \
                 or current_appt['start'] != prev_appt['start'] \
                 or current_appt['service_id'] != prev_appt['service_id']:
-                invoice_line_object = self.pool.get('account.invoice.line').\
+                order_line_object = self.pool.get('sale.order.line').\
                         search(cr, uid, [('appointment_id', '=', ids[0])],
                                context=context)
-                del_invoice_line = self.pool.get('account.invoice.line').\
-                        unlink(cr, uid, invoice_line_object[0], context=context)
-                if not del_invoice_line:
+                del_order_line = self.pool.get('sale.order.line').\
+                        unlink(cr, uid, order_line_object[0], context=context)
+                if not del_order_line:
                     raise
 
         # TODO refactor to avoid repetition
-        # Look for an existing invoice for client/date
+        # Look for an existing order for client/date
         client_object = self.pool.get('res.partner').\
                 browse(cr, uid, current_appt['client_id'], context=context)
-        invoice_object = self.pool.get('account.invoice').\
+        order_object = self.pool.get('sale.order').\
                 search(cr, uid,
-                       [('date_invoice', '=', current_appt['start']),
+                       [('date_order', '=', current_appt['start']),
                         ('partner_id', '=', client_object.id)],
                        context=context)
 
-        # Invoice creation/modification
-        if invoice_object:
-            invoice_id = invoice_object[0]
+        # Order creation/modification
+        if order_object:
+            order_id = order_object[0]
         else:  # create it
-            invoice_id = self.pool.get('account.invoice').create(cr, uid, {
+            order_id = self.pool.get('sale.order').create(cr, uid, {
                 'partner_id': client_object.id,
-                'date_invoice': current_appt['start'],
+                'date_order': current_appt['start'],
                 'account_id': client_object.property_account_receivable.id,
+                'partner_invoice_id': client_object.id,
+                'partner_shipping_id': client_object.id,
+                # TODO send correct pricelist_id
+                'pricelist_id': 1, \
                 })
-        # add service to invoice
-        self.pool.get('account.invoice.line').create(cr, uid, { \
-            'invoice_id': invoice_id, \
+        # add service to order 
+        self.pool.get('sale.order.line').create(cr, uid, { \
+            'order_id': order_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
             'price_unit': vals['price'], \
@@ -333,9 +337,9 @@ class Appointment(resource_planning, base_state, Model):
             })
 
         # Si se elimina o cancela la cita
-            # eliminar servicio de factura del cliente
+            # eliminar servicio de orden del cliente
         # Luego de cada eliminacion de servicio, se valida si
-        # la factura no tiene servicios. Se elimina factura si es asi.
+        # la orden no tiene servicios. Se elimina orden si es asi.
 
         return result
 
@@ -363,25 +367,29 @@ class Appointment(resource_planning, base_state, Model):
                 employee_object.name))
 
         # TODO refactor to avoid repetition
-        # Invoice creation/modification
+        # Order creation/modification
         appointment_date = vals['start']
         client_object = self.pool.get('res.partner').\
                 browse(cr, uid, vals['client_id'], context=context)
-        invoice_object = self.pool.get('account.invoice').\
-                search(cr, uid, [('date_invoice', '=', appointment_date),
+        order_object = self.pool.get('sale.order').\
+                search(cr, uid, [('date_order', '=', appointment_date),
                                  ('partner_id', '=', client_object.id)],
                        context=context)
-        if invoice_object:
-            invoice_id = invoice_object[0]
+        if order_object:
+            order_id = order_object[0]
         else:  # create it
-            invoice_id = self.pool.get('account.invoice').create(cr, uid, {
+            order_id = self.pool.get('sale.order').create(cr, uid, {
                 'partner_id': client_object.id,
-                'date_invoice': appointment_date,
+                'date_order': appointment_date,
                 'account_id': client_object.property_account_receivable.id,
+                'partner_invoice_id': client_object.id,
+                'partner_shipping_id': client_object.id,
+                # TODO send correct pricelist_id
+                'pricelist_id': 1, \
                 })
-        # add service to invoice
-        self.pool.get('account.invoice.line').create(cr, uid, { \
-            'invoice_id': invoice_id, \
+        # add service to order
+        self.pool.get('sale.order.line').create(cr, uid, { \
+            'order_id': order_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
             'price_unit': vals['price'], \
@@ -484,13 +492,13 @@ class product_supplierinfo(osv.osv):
             }
 
 
-class account_invoice(osv.osv):
-    _inherit = 'account.invoice'
-    _order = "date_invoice, partner_id"
+class sale_order(osv.osv):
+    _inherit = 'sale.order'
+    _order = "date_order desc, partner_id"
 
 
-class account_invoice_line(osv.osv):
-    _inherit = 'account.invoice.line'
+class sale_order_line(osv.osv):
+    _inherit = 'sale.order.line'
     _columns = {
             'appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
