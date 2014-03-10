@@ -255,6 +255,10 @@ class Appointment(resource_planning, base_state, Model):
                      'service_id': appointment_object.service_id.id,
                      }
 
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        # store read-only field price
+        vals['price'] = service_object.service.list_price
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
@@ -320,13 +324,11 @@ class Appointment(resource_planning, base_state, Model):
                 'account_id': client_object.property_account_receivable.id,
                 })
         # add service to invoice
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, current_appt['service_id'], context=context)
         self.pool.get('account.invoice.line').create(cr, uid, { \
             'invoice_id': invoice_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
-            'price_unit': service_object.service.list_price, \
+            'price_unit': vals['price'], \
             'appointment_id': ids[0], \
             })
 
@@ -338,6 +340,10 @@ class Appointment(resource_planning, base_state, Model):
         return result
 
     def create(self, cr, uid, vals, context=None):
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        # store read-only field price
+        vals['price'] = service_object.service.list_price
         id = super(Appointment, self).create(cr, uid, vals, context)
 
         ids = vals
@@ -374,13 +380,11 @@ class Appointment(resource_planning, base_state, Model):
                 'account_id': client_object.property_account_receivable.id,
                 })
         # add service to invoice
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, vals['service_id'], context=context)
         self.pool.get('account.invoice.line').create(cr, uid, { \
             'invoice_id': invoice_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
-            'price_unit': service_object.service.list_price, \
+            'price_unit': vals['price'], \
             'appointment_id': id, \
             })
 
