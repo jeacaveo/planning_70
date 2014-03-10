@@ -32,6 +32,7 @@
     "depends" : [
         'hr',
         'account',
+        'sale',
         'resource_planning',
     ],
     "data" : [
