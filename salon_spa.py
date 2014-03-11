@@ -503,3 +503,11 @@ class sale_order_line(osv.osv):
             'appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
             }
+
+
+class sale_advance_payment_inv(osv.osv):
+    _inherit = 'sale.advance.payment.inv'
+    _columns = {
+            'payment_amount': fields.float(u'Importe Pagado', required=True),
+            'journal_id':fields.many2one('account.journal', u'Método de pago', required=True)
+            }
