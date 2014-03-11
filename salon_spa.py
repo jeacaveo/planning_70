@@ -25,6 +25,7 @@ from openerp.tools.translate import _
 from openerp.osv.orm import Model, except_orm
 from openerp.osv import fields, osv
 from openerp.addons.resource_planning.resource_planning import resource_planning
+from openerp import netsvc
 
 
 #order is important here. resource_planning has to come first
@@ -164,7 +165,7 @@ class Appointment(resource_planning, base_state, Model):
 
     def case_open(self, cr, uid, ids, context=None):
         """
-        Re-write of base state case open to only change state.
+        Overwrite of base state case open to only change state.
         (Just like the rest of the states)
 
         Opens case
@@ -496,11 +497,42 @@ class sale_order(osv.osv):
     _inherit = 'sale.order'
     _order = "date_order desc, partner_id"
 
+    def action_cancel(self, cr, uid, ids, context=None):
+        """
+        Overwrite of action_cancel, just to update
+        sale_order_line in appointment_id and  previous_appointment_id
+
+        """
+
+        import ipdb; ipdb.set_trace()
+        wf_service = netsvc.LocalService("workflow")
+        if context is None:
+            context = {}
+        sale_order_line_obj = self.pool.get('sale.order.line')
+        for sale in self.browse(cr, uid, ids, context=context):
+            for inv in sale.invoice_ids:
+                if inv.state not in ('draft', 'cancel'):
+                    raise osv.except_osv(
+                        _('Cannot cancel this sales order!'),
+                        _('First cancel all invoices attached to this sales order.'))
+            for r in self.read(cr, uid, ids, ['invoice_ids']):
+                for inv in r['invoice_ids']:
+                    wf_service.trg_validate(uid, 'account.invoice', inv, 'invoice_cancel', cr)
+            sale_order_line_obj.write(cr, uid, [l.id for l in  sale.order_line],
+                    {'state': 'cancel',
+                     'appointment_id': None,
+                     'previous_appointment_id': l.appointment_id.id,
+                     })
+        self.write(cr, uid, ids, {'state': 'cancel'})
+        return True
+
 
 class sale_order_line(osv.osv):
     _inherit = 'sale.order.line'
     _columns = {
             'appointment_id': fields.many2one(
+                'salon.spa.appointment', 'Appointment'),
+            'previous_appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
             }
 
