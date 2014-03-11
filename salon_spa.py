@@ -543,6 +543,46 @@ class sale_order(osv.osv):
         self.write(cr, uid, ids, {'state': 'cancel'})
         return True
 
+    def manual_invoice(self, cr, uid, ids, context=None):
+        """
+        Overwrite of manual_invoice to create a validated and paid invoice.
+        (Instead of a draft invoice)
+
+        Original documentation:
+        create invoices for the given sales orders (ids), and open the form
+        view of one of the newly created invoices
+
+        """
+
+        mod_obj = self.pool.get('ir.model.data')
+        wf_service = netsvc.LocalService("workflow")
+
+        # create invoices through the sales orders' workflow
+        inv_ids0 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
+        for id in ids:
+            wf_service.trg_validate(uid, 'sale.order', id, 'manual_invoice', cr)
+        inv_ids1 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
+        # determine newly created invoices
+        new_inv_ids = list(inv_ids1 - inv_ids0)
+
+        for inv_id in new_inv_ids: 
+            if context.get('auto_pay', False):
+                wf_service.trg_validate(uid, 'account.invoice', inv_id, 'invoice_open', cr)
+        res = mod_obj.get_object_reference(cr, uid, 'account', 'invoice_form')
+        res_id = res and res[1] or False,
+
+        return {
+            'name': _('Customer Invoices'),
+            'view_type': 'form',
+            'view_mode': 'form',
+            'view_id': [res_id],
+            'res_model': 'account.invoice',
+            'context': "{'type':'out_invoice'}",
+            'type': 'ir.actions.act_window',
+            'nodestroy': True,
+            'target': 'current',
+            'res_id': new_inv_ids and new_inv_ids[0] or False,
+        }
 
 class sale_order_line(osv.osv):
     _inherit = 'sale.order.line'
@@ -554,7 +594,7 @@ class sale_order_line(osv.osv):
             }
 
 
-class sale_advance_payment_inv(osv.osv):
+class sale_advance_payment_inv(osv.osv_memory):
     _inherit = 'sale.advance.payment.inv'
     _columns = {
             'payment_amount': fields.float(u'Importe Pagado', required=True),
