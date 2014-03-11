@@ -497,6 +497,24 @@ class sale_order(osv.osv):
     _inherit = 'sale.order'
     _order = "date_order desc, partner_id"
 
+    def copy(self, cr, uid, id, default=None, context=None):
+        """
+        Overwrite of copy to create a copy with the same date as the old one,
+        and to assign the proper values to appointment_id in sale.order.line.
+
+        """
+
+        prev_order_object = self.pool.get('sale.order').browse(cr, uid, id, context=context)
+        ret = super(sale_order, self).copy(cr, uid, id, default, context=context)
+        self.write(cr, uid, ret, {'date_order': prev_order_object.date_order}, context=context)
+        new_order_object = self.pool.get('sale.order').browse(cr, uid, ret, context=context)
+        order_line_object = self.pool.get('sale.order.line')
+        order_line_object.write(cr, uid, [l.id for l in  new_order_object.order_line],
+                {'appointment_id': l.previous_appointment_id.id,
+                 'previous_appointment_id': None,
+                 })
+        return ret
+
     def action_cancel(self, cr, uid, ids, context=None):
         """
         Overwrite of action_cancel, just to update
