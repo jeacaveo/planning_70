@@ -504,7 +504,6 @@ class sale_order(osv.osv):
 
         """
 
-        import ipdb; ipdb.set_trace()
         wf_service = netsvc.LocalService("workflow")
         if context is None:
             context = {}
