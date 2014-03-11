@@ -102,6 +102,16 @@
                     <field name="advance_payment_method" class="oe_inline" invisible="1"
                          on_change="onchange_method(advance_payment_method, product_id)"/>
                 </field>
+
+                <!-- only show Create Invoice button (and not Create & View) -->
+                <button name="create_invoices" position="replace">
+                </button>
+                <button name="create_invoices" position="replace">
+                    <!-- Auto Pay invoices once generated if payment_amount is given TODO -->
+                    <button name="create_invoices" string="Create Invoice" type="object"
+                        class="oe_highlight" context="{'auto_pay': True}"
+                        attrs="{'invisible': [('advance_payment_method', '=', 'lines')]}"/>
+                </button>
             </field>
         </record>
 
