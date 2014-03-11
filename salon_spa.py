@@ -25,6 +25,7 @@ from openerp.tools.translate import _
 from openerp.osv.orm import Model, except_orm
 from openerp.osv import fields, osv
 from openerp.addons.resource_planning.resource_planning import resource_planning
+from openerp import netsvc
 
 
 #order is important here. resource_planning has to come first
@@ -164,7 +165,7 @@ class Appointment(resource_planning, base_state, Model):
 
     def case_open(self, cr, uid, ids, context=None):
         """
-        Re-write of base state case open to only change state.
+        Overwrite of base state case open to only change state.
         (Just like the rest of the states)
 
         Opens case
@@ -255,6 +256,10 @@ class Appointment(resource_planning, base_state, Model):
                      'service_id': appointment_object.service_id.id,
                      }
 
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        # store read-only field price
+        vals['price'] = service_object.service.list_price
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
@@ -283,61 +288,67 @@ class Appointment(resource_planning, base_state, Model):
                     'programmed to work at this time!') % (
                     employee_object.name))
 
-        # If one of the invoice related fields changes
-        # (client_id, start, service_id), delete invoice line for appt.
-        # Later an invoice is created or modificed with the new info.
+        # If one of the orders related fields changes
+        # (client_id, start, service_id), delete order line for appt.
+        # Later an order is created or modificed with the new info.
         if 'client_id' in vals \
             or 'start' in vals \
             or 'service_id' in vals:
             if current_appt['client_id'] != prev_appt['client_id'] \
                 or current_appt['start'] != prev_appt['start'] \
                 or current_appt['service_id'] != prev_appt['service_id']:
-                invoice_line_object = self.pool.get('account.invoice.line').\
+                order_line_object = self.pool.get('sale.order.line').\
                         search(cr, uid, [('appointment_id', '=', ids[0])],
                                context=context)
-                del_invoice_line = self.pool.get('account.invoice.line').\
-                        unlink(cr, uid, invoice_line_object[0], context=context)
-                if not del_invoice_line:
+                del_order_line = self.pool.get('sale.order.line').\
+                        unlink(cr, uid, order_line_object[0], context=context)
+                if not del_order_line:
                     raise
 
         # TODO refactor to avoid repetition
-        # Look for an existing invoice for client/date
+        # Look for an existing order for client/date
         client_object = self.pool.get('res.partner').\
                 browse(cr, uid, current_appt['client_id'], context=context)
-        invoice_object = self.pool.get('account.invoice').\
+        order_object = self.pool.get('sale.order').\
                 search(cr, uid,
-                       [('date_invoice', '=', current_appt['start']),
+                       [('date_order', '=', current_appt['start']),
                         ('partner_id', '=', client_object.id)],
                        context=context)
 
-        # Invoice creation/modification
-        if invoice_object:
-            invoice_id = invoice_object[0]
+        # Order creation/modification
+        if order_object:
+            order_id = order_object[0]
         else:  # create it
-            invoice_id = self.pool.get('account.invoice').create(cr, uid, {
+            order_id = self.pool.get('sale.order').create(cr, uid, {
                 'partner_id': client_object.id,
-                'date_invoice': current_appt['start'],
+                'date_order': current_appt['start'],
                 'account_id': client_object.property_account_receivable.id,
+                'partner_invoice_id': client_object.id,
+                'partner_shipping_id': client_object.id,
+                # TODO send correct pricelist_id
+                'pricelist_id': 1, \
                 })
-        # add service to invoice
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, current_appt['service_id'], context=context)
-        self.pool.get('account.invoice.line').create(cr, uid, { \
-            'invoice_id': invoice_id, \
+        # add service to order 
+        self.pool.get('sale.order.line').create(cr, uid, { \
+            'order_id': order_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
-            'price_unit': service_object.service.list_price, \
+            'price_unit': vals['price'], \
             'appointment_id': ids[0], \
             })
 
         # Si se elimina o cancela la cita
-            # eliminar servicio de factura del cliente
+            # eliminar servicio de orden del cliente
         # Luego de cada eliminacion de servicio, se valida si
-        # la factura no tiene servicios. Se elimina factura si es asi.
+        # la orden no tiene servicios. Se elimina orden si es asi.
 
         return result
 
     def create(self, cr, uid, vals, context=None):
+        service_object = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        # store read-only field price
+        vals['price'] = service_object.service.list_price
         id = super(Appointment, self).create(cr, uid, vals, context)
 
         ids = vals
@@ -357,30 +368,32 @@ class Appointment(resource_planning, base_state, Model):
                 employee_object.name))
 
         # TODO refactor to avoid repetition
-        # Invoice creation/modification
+        # Order creation/modification
         appointment_date = vals['start']
         client_object = self.pool.get('res.partner').\
                 browse(cr, uid, vals['client_id'], context=context)
-        invoice_object = self.pool.get('account.invoice').\
-                search(cr, uid, [('date_invoice', '=', appointment_date),
+        order_object = self.pool.get('sale.order').\
+                search(cr, uid, [('date_order', '=', appointment_date),
                                  ('partner_id', '=', client_object.id)],
                        context=context)
-        if invoice_object:
-            invoice_id = invoice_object[0]
+        if order_object:
+            order_id = order_object[0]
         else:  # create it
-            invoice_id = self.pool.get('account.invoice').create(cr, uid, {
+            order_id = self.pool.get('sale.order').create(cr, uid, {
                 'partner_id': client_object.id,
-                'date_invoice': appointment_date,
+                'date_order': appointment_date,
                 'account_id': client_object.property_account_receivable.id,
+                'partner_invoice_id': client_object.id,
+                'partner_shipping_id': client_object.id,
+                # TODO send correct pricelist_id
+                'pricelist_id': 1, \
                 })
-        # add service to invoice
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, vals['service_id'], context=context)
-        self.pool.get('account.invoice.line').create(cr, uid, { \
-            'invoice_id': invoice_id, \
+        # add service to order
+        self.pool.get('sale.order.line').create(cr, uid, { \
+            'order_id': order_id, \
             'name': service_object.service.name, \
             'product_id': service_object.service.id, \
-            'price_unit': service_object.service.list_price, \
+            'price_unit': vals['price'], \
             'appointment_id': id, \
             })
 
@@ -480,14 +493,110 @@ class product_supplierinfo(osv.osv):
             }
 
 
-class account_invoice(osv.osv):
-    _inherit = 'account.invoice'
-    _order = "date_invoice, partner_id"
+class sale_order(osv.osv):
+    _inherit = 'sale.order'
+    _order = "date_order desc, partner_id"
 
+    def copy(self, cr, uid, id, default=None, context=None):
+        """
+        Overwrite of copy to create a copy with the same date as the old one,
+        and to assign the proper values to appointment_id in sale.order.line.
 
-class account_invoice_line(osv.osv):
-    _inherit = 'account.invoice.line'
+        """
+
+        prev_order_object = self.pool.get('sale.order').browse(cr, uid, id, context=context)
+        ret = super(sale_order, self).copy(cr, uid, id, default, context=context)
+        self.write(cr, uid, ret, {'date_order': prev_order_object.date_order}, context=context)
+        new_order_object = self.pool.get('sale.order').browse(cr, uid, ret, context=context)
+        order_line_object = self.pool.get('sale.order.line')
+        order_line_object.write(cr, uid, [l.id for l in  new_order_object.order_line],
+                {'appointment_id': l.previous_appointment_id.id,
+                 'previous_appointment_id': None,
+                 })
+        return ret
+
+    def action_cancel(self, cr, uid, ids, context=None):
+        """
+        Overwrite of action_cancel, just to update
+        sale_order_line in appointment_id and  previous_appointment_id
+
+        """
+
+        wf_service = netsvc.LocalService("workflow")
+        if context is None:
+            context = {}
+        sale_order_line_obj = self.pool.get('sale.order.line')
+        for sale in self.browse(cr, uid, ids, context=context):
+            for inv in sale.invoice_ids:
+                if inv.state not in ('draft', 'cancel'):
+                    raise osv.except_osv(
+                        _('Cannot cancel this sales order!'),
+                        _('First cancel all invoices attached to this sales order.'))
+            for r in self.read(cr, uid, ids, ['invoice_ids']):
+                for inv in r['invoice_ids']:
+                    wf_service.trg_validate(uid, 'account.invoice', inv, 'invoice_cancel', cr)
+            sale_order_line_obj.write(cr, uid, [l.id for l in  sale.order_line],
+                    {'state': 'cancel',
+                     'appointment_id': None,
+                     'previous_appointment_id': l.appointment_id.id,
+                     })
+        self.write(cr, uid, ids, {'state': 'cancel'})
+        return True
+
+    def manual_invoice(self, cr, uid, ids, context=None):
+        """
+        Overwrite of manual_invoice to create a validated and paid invoice.
+        (Instead of a draft invoice)
+
+        Original documentation:
+        create invoices for the given sales orders (ids), and open the form
+        view of one of the newly created invoices
+
+        """
+
+        mod_obj = self.pool.get('ir.model.data')
+        wf_service = netsvc.LocalService("workflow")
+
+        # create invoices through the sales orders' workflow
+        inv_ids0 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
+        for id in ids:
+            wf_service.trg_validate(uid, 'sale.order', id, 'manual_invoice', cr)
+        inv_ids1 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
+        # determine newly created invoices
+        new_inv_ids = list(inv_ids1 - inv_ids0)
+
+        for inv_id in new_inv_ids: 
+            if context.get('auto_pay', False):
+                wf_service.trg_validate(uid, 'account.invoice', inv_id, 'invoice_open', cr)
+        res = mod_obj.get_object_reference(cr, uid, 'account', 'invoice_form')
+        res_id = res and res[1] or False,
+
+        return {
+            'name': _('Customer Invoices'),
+            'view_type': 'form',
+            'view_mode': 'form',
+            'view_id': [res_id],
+            'res_model': 'account.invoice',
+            'context': "{'type':'out_invoice'}",
+            'type': 'ir.actions.act_window',
+            'nodestroy': True,
+            'target': 'current',
+            'res_id': new_inv_ids and new_inv_ids[0] or False,
+        }
+
+class sale_order_line(osv.osv):
+    _inherit = 'sale.order.line'
     _columns = {
             'appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
+            'previous_appointment_id': fields.many2one(
+                'salon.spa.appointment', 'Appointment'),
+            }
+
+
+class sale_advance_payment_inv(osv.osv_memory):
+    _inherit = 'sale.advance.payment.inv'
+    _columns = {
+            'payment_amount': fields.float(u'Importe Pagado', required=True),
+            'journal_id':fields.many2one('account.journal', u'Método de pago', required=True)
             }

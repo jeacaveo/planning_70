@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Salon and Spa",
-    "version" : "0.3",
+    "version" : "0.3.1",
     "author" : "Ventura Systems",
     "complexity": "normal",
     "description": """
@@ -32,6 +32,7 @@
     "depends" : [
         'hr',
         'account',
+        'sale',
         'resource_planning',
     ],
     "data" : [
