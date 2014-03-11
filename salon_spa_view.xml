@@ -98,6 +98,7 @@
                     <field name="payment_amount" />
                 </field>
                 <field name="advance_payment_method" position="replace">
+                    <!-- made invisible -->
                     <field name="advance_payment_method" class="oe_inline" invisible="1"
                          on_change="onchange_method(advance_payment_method, product_id)"/>
                 </field>
