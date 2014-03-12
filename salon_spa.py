@@ -147,21 +147,25 @@ class Appointment(resource_planning, base_state, Model):
                      }
                 }
 
-    def onchange_appointment_start(self, cr, uid, ids, context=None):
+    def onchange_appointment_start(self, cr, uid, ids,
+            employee_id, start, duration, context=None):
         """
-        Resets all fields when start date changes.
+        Validates appointment when start date changes.
 
         """
 
-        return {'value':
-                    {'service_id': None,
-                     'space_id': None,
-                     'duration': 0,
-                     'employee_id': None,
-                     'category_id': None,
-                     'price': 0,
-                     }
-                }
+        if employee_id:
+            start_date = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
+            employee_available = self.check_employee_availability(cr, uid, ids,\
+                    employee_id, start_date, duration=duration, context=context)
+            if not employee_available:
+                employee_object = self.pool.get('hr.employee').\
+                        browse(cr, uid, employee_id,
+                               context=context)
+                raise except_orm(_('Error'), _('%s is not '
+                    'programmed to work at this time!') % (
+                    employee_object.name))
+        return {}
 
     def case_open(self, cr, uid, ids, context=None):
         """
@@ -256,10 +260,11 @@ class Appointment(resource_planning, base_state, Model):
                      'service_id': appointment_object.service_id.id,
                      }
 
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, vals['service_id'], context=context)
-        # store read-only field price
-        vals['price'] = service_object.service.list_price
+        if vals.get('service_id', False): 
+            service_object = self.pool.get('salon.spa.service').\
+                    browse(cr, uid, vals['service_id'], context=context)
+            # store read-only field price
+            vals['price'] = service_object.service.list_price
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
@@ -272,7 +277,7 @@ class Appointment(resource_planning, base_state, Model):
                 current_appt[key] = val
 
         # Duration changes if date, service or duration is modified
-        if 'duration' in vals:
+        if vals.get('duration', False): 
             # TODO refactor to avoid repetition
             # Validate employee work schedule
             start_date = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S')
@@ -291,11 +296,12 @@ class Appointment(resource_planning, base_state, Model):
         # If one of the orders related fields changes
         # (client_id, start, service_id), delete order line for appt.
         # Later an order is created or modificed with the new info.
-        if 'client_id' in vals \
-            or 'start' in vals \
-            or 'service_id' in vals:
+        if vals.get('client_id', False) \
+            or vals.get('start', False) \
+            or vals.get('service_id', False):
             if current_appt['client_id'] != prev_appt['client_id'] \
-                or current_appt['start'] != prev_appt['start'] \
+                or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
+                   != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                 or current_appt['service_id'] != prev_appt['service_id']:
                 order_line_object = self.pool.get('sale.order.line').\
                         search(cr, uid, [('appointment_id', '=', ids[0])],
@@ -305,43 +311,43 @@ class Appointment(resource_planning, base_state, Model):
                 if not del_order_line:
                     raise
 
-        # TODO refactor to avoid repetition
-        # Look for an existing order for client/date
-        client_object = self.pool.get('res.partner').\
-                browse(cr, uid, current_appt['client_id'], context=context)
-        order_object = self.pool.get('sale.order').\
-                search(cr, uid,
-                       [('date_order', '=', current_appt['start']),
-                        ('partner_id', '=', client_object.id),
-                        ('state', 'not in', ['cancel', 'progress'])],
-                       context=context)
+                # TODO refactor to avoid repetition
+                # Look for an existing order for client/date
+                client_object = self.pool.get('res.partner').\
+                        browse(cr, uid, current_appt['client_id'], context=context)
+                order_object = self.pool.get('sale.order').\
+                        search(cr, uid,
+                               [('date_order', '=', current_appt['start']),
+                                ('partner_id', '=', client_object.id),
+                                ('state', 'not in', ['cancel', 'progress'])],
+                               context=context)
 
-        # Order creation/modification
-        if order_object:
-            order_id = order_object[0]
-        else:  # create it
-            order_id = self.pool.get('sale.order').create(cr, uid, {
-                'partner_id': client_object.id,
-                'date_order': current_appt['start'],
-                'account_id': client_object.property_account_receivable.id,
-                'partner_invoice_id': client_object.id,
-                'partner_shipping_id': client_object.id,
-                # TODO send correct pricelist_id
-                'pricelist_id': 1, \
-                })
-        # add service to order 
-        self.pool.get('sale.order.line').create(cr, uid, { \
-            'order_id': order_id, \
-            'name': service_object.service.name, \
-            'product_id': service_object.service.id, \
-            'price_unit': vals['price'], \
-            'appointment_id': ids[0], \
-            })
+                # Order creation/modification
+                if order_object:
+                    order_id = order_object[0]
+                else:  # create it
+                    order_id = self.pool.get('sale.order').create(cr, uid, {
+                        'partner_id': client_object.id,
+                        'date_order': current_appt['start'],
+                        'account_id': client_object.property_account_receivable.id,
+                        'partner_invoice_id': client_object.id,
+                        'partner_shipping_id': client_object.id,
+                        # TODO send correct pricelist_id
+                        'pricelist_id': 1, \
+                        })
+                # add service to order 
+                self.pool.get('sale.order.line').create(cr, uid, { \
+                    'order_id': order_id, \
+                    'name': service_object.service.name, \
+                    'product_id': service_object.service.id, \
+                    'price_unit': vals['price'], \
+                    'appointment_id': ids[0], \
+                    })
 
-        # Si se elimina o cancela la cita
-            # eliminar servicio de orden del cliente
-        # Luego de cada eliminacion de servicio, se valida si
-        # la orden no tiene servicios. Se elimina orden si es asi.
+                # Si se elimina o cancela la cita
+                    # eliminar servicio de orden del cliente
+                # Luego de cada eliminacion de servicio, se valida si
+                # la orden no tiene servicios. Se elimina orden si es asi.
 
         return result
 
