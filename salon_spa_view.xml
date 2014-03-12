@@ -94,23 +94,32 @@
             <field name="inherit_id" ref="sale.view_sale_advance_payment_inv"/>
             <field name="arch" type="xml">
                 <field name="advance_payment_method" position="after">
-                    <field name="journal_id" class="oe_inline" domain="[('type','in',['cash','bank'])]" />
-                    <field name="payment_amount" />
-                </field>
-                <field name="advance_payment_method" position="replace">
-                    <!-- made invisible -->
-                    <field name="advance_payment_method" class="oe_inline" invisible="1"
-                         on_change="onchange_method(advance_payment_method, product_id)"/>
+                    <field name="journal_id" class="oe_inline" domain="[('type','in',['cash','bank'])]"
+                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')],
+                                'required': [('advance_payment_method', '=', 'auto_pay')]}" />
+                    <field name="payment_amount"
+                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}" />
                 </field>
 
-                <!-- only show Create Invoice button (and not Create & View) -->
+                <!-- Hide standard buttons and show new Invoice and Pay button -->
                 <button name="create_invoices" position="replace">
                 </button>
                 <button name="create_invoices" position="replace">
+                </button>
+                <button name="create_invoices" position="before">
+                    <button name="create_invoices" string="Create and View Invoice" type="object"
+                        context="{'open_invoices': True}" class="oe_highlight"
+                        attrs="{'invisible': [('advance_payment_method', 'in', ['lines', 'auto_pay'])]}"/>
+                </button>
+                <button name="create_invoices" position="before">
+                    <button name="create_invoices" string="Create Invoice" type="object" class="oe_highlight"
+                        attrs="{'invisible': [('advance_payment_method', 'in', ['lines', 'auto_pay'])]}"/>
+                </button>
+                <button name="create_invoices" position="before">
                     <!-- Auto Pay invoices once generated if payment_amount is given TODO -->
-                    <button name="create_invoices" string="Create Invoice" type="object"
-                        class="oe_highlight" context="{'auto_pay': True}"
-                        attrs="{'invisible': [('advance_payment_method', '=', 'lines')]}"/>
+                    <button name="create_invoices" string="Invoice and Pay" type="object" class="oe_highlight"
+                        context="{'auto_pay': True, 'journal_id': journal_id, 'payment_amount': payment_amount}"
+                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}"/>
                 </button>
             </field>
         </record>
