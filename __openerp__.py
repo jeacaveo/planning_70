@@ -39,9 +39,14 @@
         'salon_spa_view.xml',
     ],
     "js": [
+        'static/src/js/salon_spa.js',
     ],
     "css": [
     ],
+    'qweb' : [
+        'static/src/xml/*.xml',
+    ],
+    
     "auto_install": False,
     "installable": True,
     "external_dependencies" : {
