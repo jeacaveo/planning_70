@@ -559,15 +559,42 @@ class sale_order(osv.osv):
 
         # create invoices through the sales orders' workflow
         inv_ids0 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
-        for id in ids:
-            wf_service.trg_validate(uid, 'sale.order', id, 'manual_invoice', cr)
+        for order_id in ids:
+            wf_service.trg_validate(uid, 'sale.order', order_id, 'manual_invoice', cr)
         inv_ids1 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
         # determine newly created invoices
         new_inv_ids = list(inv_ids1 - inv_ids0)
 
         for inv_id in new_inv_ids: 
             if context.get('auto_pay', False):
+                # Validates Invoice
                 wf_service.trg_validate(uid, 'account.invoice', inv_id, 'invoice_open', cr)
+
+                # Pay Invoice
+                invoice_object = self.pool.get('account.invoice').\
+                        browse(cr, uid, inv_id, context=context)
+                move_line_object = self.pool.get('account.move.line').\
+                        search(cr, uid, [('move_id', '=', invoice_object.move_id.id), ('debit', '>', 0)], context=context)
+                voucher_id = self.pool.get('account.voucher').create(cr, uid, {
+                    'partner_id': invoice_object.partner_id.id,
+                    # TODO Pagos Parciales
+                    'amount': invoice_object.amount_total,
+                    # TODO Multiples pagos
+                    'journal_id': context.get('journal_id', False),
+                    'account_id': invoice_object.account_id.id,
+                    'type': 'receipt',
+                    })
+                for move_line in move_line_object:
+                    self.pool.get('account.voucher.line').create(cr, uid, {
+                        'voucher_id': voucher_id,
+                        'name': invoice_object.number,
+                        'partner_id': invoice_object.partner_id.id,
+                        'amount': invoice_object.amount_total,
+                        'account_id': invoice_object.account_id.id,
+                        'move_line_id': move_line,
+                        'type': 'cr',
+                        })
+                wf_service.trg_validate(uid, 'account.voucher', voucher_id, 'proforma_voucher', cr)
         res = mod_obj.get_object_reference(cr, uid, 'account', 'invoice_form')
         res_id = res and res[1] or False,
 
@@ -596,7 +623,89 @@ class sale_order_line(osv.osv):
 
 class sale_advance_payment_inv(osv.osv_memory):
     _inherit = 'sale.advance.payment.inv'
+
+    # TODO This should be done in the context of the action that calls
+    # sale_make_invoice_advance_view or http://forum.openerp.com/forum/topic28369.html
+    def _payment_total(self, cr, uid, ids, context=None):
+        """
+        Shows the order/invoice total.
+
+        """
+
+        cur_obj = self.pool.get('res.currency')
+        res = {}
+        for order in self.browse(cr, uid, ids, context=context):
+            res[order.id] = {
+                'amount_untaxed': 0.0,
+                'amount_tax': 0.0,
+                'amount_total': 0.0,
+            }   
+            val = val1 = 0.0
+            cur = order.pricelist_id.currency_id
+            for line in order.order_line:
+                val1 += line.price_subtotal
+                val += self._amount_line_tax(cr, uid, line, context=context)
+            res[order.id]['amount_tax'] = cur_obj.round(cr, uid, cur, val)
+            res[order.id]['amount_untaxed'] = cur_obj.round(cr, uid, cur, val1)
+            res[order.id]['amount_total'] = res[order.id]['amount_untaxed'] + res[order.id]['amount_tax']
+        return res[order.id]['amount_total']
+    
     _columns = {
-            'payment_amount': fields.float(u'Importe Pagado', required=True),
-            'journal_id':fields.many2one('account.journal', u'Método de pago', required=True)
+            'advance_payment_method':fields.selection(
+                [('auto_pay', 'Invoice the whole sale plus Payment'),
+                 ('all', 'Invoice the whole sales order'),
+                 ('percentage','Percentage'),
+                 ('fixed','Fixed price (deposit)'),
+                 ('lines', 'Some order lines')
+                 ],
+                'What do you want to invoice?', required=True,
+                help="""Use All to create the final invoice.
+                    Use Percentage to invoice a percentage of the total amount.
+                    Use Fixed Price to invoice a specific amound in advance.
+                    Use Some Order Lines to invoice a selection of the sales order lines."""),
+            'journal_id':fields.many2one('account.journal', 'Journal', help="Payment method for the Invoce."),
+            'payment_amount': fields.float(string='Payment Amount', readonly=True,  help="Total amount for the order/invoice to be paid."),
             }
+    
+    _defaults = {
+        'advance_payment_method': 'auto_pay',
+        }
+
+    def create_invoices(self, cr, uid, ids, context=None):
+        """
+        Overwrite of method to include 'auto_pay' in same
+        validation as 'all'.
+
+        Original documentation:
+        create invoices for the active sales orders
+        
+        """
+
+        sale_obj = self.pool.get('sale.order')
+        act_window = self.pool.get('ir.actions.act_window')
+        wizard = self.browse(cr, uid, ids[0], context)
+        sale_ids = context.get('active_ids', [])
+        if wizard.advance_payment_method in ['all', 'auto_pay']:
+            # create the final invoices of the active sales orders
+            res = sale_obj.manual_invoice(cr, uid, sale_ids, context)
+            if context.get('open_invoices', False):
+                return res
+            return {'type': 'ir.actions.act_window_close'}
+
+        if wizard.advance_payment_method == 'lines':
+            # open the list view of sales order lines to invoice
+            res = act_window.for_xml_id(cr, uid, 'sale', 'action_order_line_tree2', context)
+            res['context'] = {
+                'search_default_uninvoiced': 1,
+                'search_default_order_id': sale_ids and sale_ids[0] or False,
+            }
+            return res
+        assert wizard.advance_payment_method in ('fixed', 'percentage')
+
+        inv_ids = []
+        for sale_id, inv_values in self._prepare_advance_invoice_vals(cr, uid, ids, context=context):
+            inv_ids.append(self._create_invoices(cr, uid, inv_values, sale_id, context=context))
+
+        if context.get('open_invoices', False):
+            return self.open_invoices( cr, uid, ids, inv_ids, context=context)
+        return {'type': 'ir.actions.act_window_close'}
