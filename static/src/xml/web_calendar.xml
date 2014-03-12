@@ -1,7 +1,0 @@
-<template>
-<t t-extend="CalendarView">
-    <!-- Don't show Timeline tab. Not needed and bugs out when click many times. -->
-    <div t-jquery=".dhx_cal_tab[name='timeline_tab']" t-operation="replace">
-    </div>
-</t>
-</template>
