@@ -312,7 +312,8 @@ class Appointment(resource_planning, base_state, Model):
         order_object = self.pool.get('sale.order').\
                 search(cr, uid,
                        [('date_order', '=', current_appt['start']),
-                        ('partner_id', '=', client_object.id)],
+                        ('partner_id', '=', client_object.id),
+                        ('state', 'not in', ['cancel', 'progress'])],
                        context=context)
 
         # Order creation/modification
