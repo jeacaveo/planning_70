@@ -34,6 +34,7 @@
         'account',
         'sale',
         'resource_planning',
+        'product_bundle',
     ],
     "data" : [
         'salon_spa_view.xml',
