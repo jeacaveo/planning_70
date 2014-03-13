@@ -197,8 +197,16 @@ class Appointment(resource_planning, base_state, Model):
                 end_date = start_date + timedelta(hours=duration)
             else:
                 return False
+        day_start = start_date.replace(hour=0, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = start_date.replace(hour=23, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+
         appointment_ids = self.pool.get('salon.spa.appointment').\
-                search(cr, uid, [(resource_type, '=', resource)],
+                search(cr, uid, [('start', '>=', day_start),
+                                 ('start', '<=', day_end),
+                                 ('id', '!=', ids),
+                                 (resource_type, '=', resource)],
                         context=context)
 
         for appointment in appointment_ids:
