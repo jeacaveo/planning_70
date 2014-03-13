@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Salon and Spa",
-    "version" : "0.3.1",
+    "version" : "0.3.2",
     "author" : "Ventura Systems",
     "complexity": "normal",
     "description": """
@@ -31,17 +31,22 @@
     "category" : "",
     "depends" : [
         'hr',
-        'account',
-        'sale',
+        'point_of_sale',
         'resource_planning',
+        'product_bundle',
     ],
     "data" : [
         'salon_spa_view.xml',
     ],
     "js": [
+        'static/src/js/salon_spa.js',
     ],
     "css": [
     ],
+    'qweb' : [
+        'static/src/xml/*.xml',
+    ],
+    
     "auto_install": False,
     "installable": True,
     "external_dependencies" : {
