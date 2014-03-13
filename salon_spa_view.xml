@@ -63,35 +63,56 @@
                 </field>
             </field>
         </record>
-        <!-- Sale Order tree view -->
-        <record id="salon_spa_sale_order_tree_view" model="ir.ui.view">
-            <field name="name">salon.spa.sale.order.tree.view</field>
-            <field name="model">sale.order</field>
-            <field name="inherit_id" ref="sale.view_order_tree"/>
+        <!-- POS Order tree view -->
+        <record id="salon_spa_point_of_sale_view_pos_order_tree_view" model="ir.ui.view">
+            <field name="name">salon.spa.point_of_sale.view.pos.order.tree</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
             <field name="arch" type="xml">
                 <field name="name" position="replace">
                 </field>
-                <field name="partner_id" position="after">
+                <field name="pos_reference" position="replace">
+                </field>
+                <field name="user_id" position="replace">
+                </field>
+                <field name="session_id" position="replace">
+                </field>
+                <field name="amount_total" position="replace">
+                </field>
+                <field name="state" position="replace">
+                </field>
+                <field name="invoice_id" position="replace">
+                </field>
+                <field name="date_order" position="after">
+                    <field name="user_id" />
                     <field name="name" />
+                    <field name="pos_reference" />
+                    <field name="invoice_id" />
+                    <field name="session_id" />
+                    <field name="state" />
+                    <field name="amount_total" sum="Amount total"/>
                 </field>
             </field>
         </record>
-        <!-- Sale Order search view -->
-        <record id="salon_spa_sale_view_sales_order_filter" model="ir.ui.view">
-            <field name="name">salon.spa.sale.view.sales.order.filter</field>
-            <field name="model">sale.order</field>
-            <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <!-- POS Order search view -->
+        <record id="salon_spa_point_of_sale_view_pos_order_filter" model="ir.ui.view">
+            <field name="name">salon.spa.point_of_sale.view.pos.order.filter</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
             <field name="arch" type="xml">
-                <field name="name" position="after">
-                    <field name="date_order" string="Fecha" />
+                <field name="name" position="before">
+                    <field name="partner_id" />
+                </field>
+                <field name="name" position="replace">
                 </field>
             </field>
         </record>
-        <!-- Sale Advanced Payment Invoice view -->
-        <record id="salon_spa_view_sale_advance_payment_inv" model="ir.ui.view">
-            <field name="name">salon.spa.view.sale.advance.payment.inv</field>
-            <field name="model">sale.advance.payment.inv</field>
-            <field name="inherit_id" ref="sale.view_sale_advance_payment_inv"/>
+        <!-- Handling invoicing in pos.order, this is not needed
+        <!- Sale Advanced Payment Invoice view ->
+        <record id="salon_spa_view_pos_advance_payment_inv" model="ir.ui.view">
+            <field name="name">salon.spa.view.pos.advance.payment.inv</field>
+            <field name="model">pos.advance.payment.inv</field>
+            <field name="inherit_id" ref="pos.view_pos_advance_payment_inv"/>
             <field name="arch" type="xml">
                 <field name="advance_payment_method" position="after">
                     <field name="journal_id" class="oe_inline" domain="[('type','in',['cash','bank'])]"
@@ -101,7 +122,7 @@
                         attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}" />
                 </field>
 
-                <!-- Hide standard buttons and show new Invoice and Pay button -->
+                <!- Hide standard buttons and show new Invoice and Pay button ->
                 <button name="create_invoices" position="replace">
                 </button>
                 <button name="create_invoices" position="replace">
@@ -116,14 +137,14 @@
                         attrs="{'invisible': [('advance_payment_method', 'in', ['lines', 'auto_pay'])]}"/>
                 </button>
                 <button name="create_invoices" position="before">
-                    <!-- Auto Pay invoices once generated if payment_amount is given TODO -->
+                    <!- Auto Pay invoices once generated if payment_amount is given TODO ->
                     <button name="create_invoices" string="Invoice and Pay" type="object" class="oe_highlight"
                         context="{'auto_pay': True, 'journal_id': journal_id, 'payment_amount': payment_amount}"
                         attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}"/>
                 </button>
             </field>
         </record>
-
+        -->
 
         <!-- Appointment -->
         <!-- Appointment calendar view -->
@@ -264,7 +285,7 @@
         <act_window
             id="action_checkout"
             name="Caja"
-            res_model="sale.order"
+            res_model="pos.order"
             view_type="form"
             view_mode="tree,form" />
         <!--context="{'search_default_date_order': [date_order], 'default_date_order': date_order}" /> -->
