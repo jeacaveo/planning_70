@@ -31,8 +31,7 @@
     "category" : "",
     "depends" : [
         'hr',
-        'account',
-        'sale',
+        'point_of_sale',
         'resource_planning',
         'product_bundle',
     ],
