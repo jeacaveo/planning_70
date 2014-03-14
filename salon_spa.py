@@ -229,6 +229,7 @@ class Appointment(resource_planning, base_state, Model):
 
         """
 
+        # TODO refactor to avoid repetition
         if not end_date:
             if duration:
                 end_date = start_date + timedelta(hours=duration)
@@ -284,7 +285,21 @@ class Appointment(resource_planning, base_state, Model):
             if key not in current_appt:
                 current_appt[key] = val
 
-        # Duration changes if date, service or duration is modified
+        # Check if employee is assigned to service.
+        if vals.get('employee_id', False): 
+            employee_object = self.pool.get('hr.employee').\
+                    browse(cr, uid, current_appt['employee_id'],
+                           context=context)
+            service_ids = []
+            for service in employee_object.service_ids:
+                service_ids.append(service.id)
+            if current_appt['service_id'] not in service_ids:
+                raise except_orm(_('Error'), _('%s is not '
+                    'assigned to work with %s!') % (
+                    employee_object.name,
+                    service_object.service.name))
+
+        # Duration changes if service or duration is modified
         if vals.get('duration', False): 
             # TODO refactor to avoid repetition
             # Validate employee work schedule
