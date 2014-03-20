@@ -189,10 +189,10 @@
                             <field name="client_id" />
                             <field name="start" on_change="onchange_appointment_start(employee_id, start, duration, context)" />
                             <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, context)" />
-                            <field name="duration" widget="float_time" />
+                            <field name="duration" widget="float_time" readonly="1" />
                             <field name="employee_id" />
-                            <field name="space_id" />
                             <field name="price" readonly="1" />
+                            <field name="space_id" />
                             <field name="category_id" invisible="True" />
                         </group>
                         <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
