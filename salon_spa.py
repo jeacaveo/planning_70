@@ -179,6 +179,41 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
+    def action_view_pos_order(self, cr, uid, ids, context=None):
+        '''
+        This function returns an action that displays existing orders
+        of the client for the same day of this appointment.
+        It can either be in a list,
+        or in a form view if there is only one invoice to show.
+
+        '''
+
+        mod_obj = self.pool.get('ir.model.data')
+        act_obj = self.pool.get('ir.actions.act_window')
+
+        result = mod_obj.get_object_reference(cr, uid, 'point_of_sale', 'action_pos_pos_form')
+        id = result and result[1] or False
+        result = act_obj.read(cr, uid, [id], context=context)[0]
+        appt_object = self.browse(cr, uid, ids, context=context)[0]
+        client_object = appt_object.client_id
+        # TODO REFACTOR!!!
+        day_start = datetime.strptime(appt_object.start, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = datetime.strptime(appt_object.start, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        # get orders for the client/day (of appointment)
+        order_ids = self.pool.get('pos.order').\
+                search(cr, uid, [('date_order', '>=', day_start),
+                                 ('date_order', '<=', day_end),
+                                 ('partner_id', '=', client_object.id)],
+                       context=context)
+        result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
+        # change to form view if theirs only one order for the client/day
+        if len(order_ids) == 1:
+            result['views'] = [(False, 'form')]
+            result['res_id'] = order_ids and order_ids[0] or False
+        return result
+
     def check_resource_availability(self, cr, uid, ids, resource_type, resource, \
             start_date, end_date=None, duration=None, context=None):
         """
