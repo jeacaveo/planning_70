@@ -274,6 +274,24 @@ class Appointment(resource_planning, base_state, Model):
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
         # store read-only field price
         vals['price'] = service_object.service.list_price
+
+        # Check if client is available for service.
+        # TODO REFACTOR
+        date = vals.get('start', False) or prev_appt['start']
+        duration = vals.get('duration', False) or prev_appt['duration']
+        client =  vals.get('client_id', False) or prev_appt['client_id']
+        start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        end_date = start_date + timedelta(hours=duration)
+        client_available = self.check_resource_availability(cr, uid, ids,
+                            'client_id', client,
+                            start_date, end_date, context=context)
+        if not client_available:
+            client_object = self.pool.get('res.partner').\
+                    browse(cr, uid, client, context=context)
+            raise except_orm(_('Error'), _('%s is already '
+                'on another service at this time!') % (
+                client_object.name))
+
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
@@ -379,6 +397,24 @@ class Appointment(resource_planning, base_state, Model):
                 browse(cr, uid, vals['service_id'], context=context)
         # store read-only field price
         vals['price'] = service_object.service.list_price
+
+        # Check if client is available for service.
+        # TODO REFACTOR
+        date = vals.get('start', False)
+        duration = vals.get('duration', False)
+        client =  vals.get('client_id', False)
+        start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        end_date = start_date + timedelta(hours=duration)
+        client_available = self.check_resource_availability(cr, uid, 0, # 0=ids es el id del appointment, pero este no existe aun
+                            'client_id', client,
+                            start_date, end_date, context=context)
+        if not client_available:
+            client_object = self.pool.get('res.partner').\
+                    browse(cr, uid, client, context=context)
+            raise except_orm(_('Error'), _('%s is already '
+                'on another service at this time!') % (
+                client_object.name))
+
         id = super(Appointment, self).create(cr, uid, vals, context)
 
         ids = vals
