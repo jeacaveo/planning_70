@@ -170,6 +170,8 @@
                     <field name="client_id" />
                     <field name="service_id" />
                     <field name="space_id" />
+                    <!-- TODO fix price not showing -->
+                    <field name="price" />
                 </calendar>
             </field>
         </record>
@@ -215,6 +217,7 @@
                     <field name="employee_id" />
                     <field name="service_id" />
                     <field name="space_id" />
+                    <field name="price" />
                     <field name="state" />
                     <button name="case_pending" string="En Espera" type="object"
                             states="open" icon="gtk-undo"/>
