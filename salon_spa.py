@@ -272,8 +272,9 @@ class Appointment(resource_planning, base_state, Model):
 
         service_object = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
-        # store read-only field price
+        # store read-only fields 
         vals['price'] = service_object.service.list_price
+        vals['duration'] = service_object.duration
 
         # Check if client is available for service.
         # TODO REFACTOR
@@ -395,8 +396,9 @@ class Appointment(resource_planning, base_state, Model):
     def create(self, cr, uid, vals, context=None):
         service_object = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals['service_id'], context=context)
-        # store read-only field price
+        # store read-only fields
         vals['price'] = service_object.service.list_price
+        vals['duration'] = service_object.duration
 
         # Check if client is available for service.
         # TODO REFACTOR
