@@ -22,6 +22,7 @@
     "name" : "Salon and Spa",
     "version" : "0.3.2",
     "author" : "Ventura Systems",
+    "licence": "AGPL v3",
     "complexity": "normal",
     "description": """
     Required:
@@ -37,6 +38,10 @@
     ],
     "data" : [
         'salon_spa_view.xml',
+        'hr_employee/hr_employee_view.xml',
+        'product/product_view.xml',
+        'res_partner/res_partner_view.xml',
+        'pos_order/pos_order_view.xml',
     ],
     "js": [
         'static/src/js/salon_spa.js',
@@ -46,7 +51,6 @@
     'qweb' : [
         'static/src/xml/*.xml',
     ],
-    
     "auto_install": False,
     "installable": True,
     "external_dependencies" : {
