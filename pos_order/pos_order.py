@@ -37,7 +37,7 @@ class pos_order_line(osv.osv):
 # Right now only works for sale.order
 class pos_order(osv.osv):
     _inherit = "pos.order"
-    
+
     def _prepare_order_picking(self, cr, uid, order, context=None):
         pick_name = self.pool.get('ir.sequence').get(cr, uid, 'stock.picking.out')
         return {
@@ -50,10 +50,10 @@ class pos_order(osv.osv):
             'sale_id': order.id,
             'partner_id': order.partner_shipping_id.id,
             'note': order.note,
-            'invoice_state': (order.order_policy=='picking' and '2binvoiced') or 'none',
+            'invoice_state': (order.order_policy == 'picking' and '2binvoiced') or 'none',
             'company_id': order.company_id.id,
         }
-    
+
     def _create_pickings_and_procurements(self, cr, uid, order, order_lines, picking_id=False, context=None):
         """Create the required procurements to supply sales order lines, also connecting
         the procurements to appropriate stock moves in order to bring the goods to the
@@ -77,7 +77,7 @@ class pos_order(osv.osv):
         picking_obj = self.pool.get('stock.picking')
         procurement_obj = self.pool.get('procurement.order')
         proc_ids = []
-        
+
         location_id = order.shop_id.warehouse_id.lot_stock_id.id
         output_id = order.shop_id.warehouse_id.lot_output_id.id
 
@@ -86,23 +86,23 @@ class pos_order(osv.osv):
                 continue
 
             date_planned = self._get_date_planned(cr, uid, order, line, order.date_order, context=context)
-            
+
             fake_line_ids = []
             is_bundle = False
-            
+
             if line.product_id:
                 if line.product_id.supply_method == 'bundle':
-                    fake_line_ids = filter(None, map(lambda x:x, line.product_id.item_ids))
+                    fake_line_ids = filter(None, map(lambda x: x, line.product_id.item_ids))
                     is_bundle = True
                 else:
                     fake_line_ids.append(line)
-                
+
                 for fake_line in fake_line_ids:
                     line_vals = {}
-                    
+
                     line_vals.update({
                         'location_id': location_id,
-                        'company_id': order.company_id.id,                        
+                        'company_id': order.company_id.id,
                         #move
                         'location_dest_id': output_id,
                         'date': date_planned,
@@ -113,7 +113,7 @@ class pos_order(osv.osv):
                         'tracking_id': False,
                         'state': 'draft',
                     })
-                    
+
                     if is_bundle:
                         line_vals.update({
                             'product_id': fake_line.item_id.id,
@@ -141,17 +141,16 @@ class pos_order(osv.osv):
                             'price_unit': line.product_id.standard_price or 0.0,
                         })
                         product_id = line.product_id
-                    
-                    
+
                     if product_id.type in ('product', 'consu'):
                         if not picking_id:
                             picking_id = picking_obj.create(cr, uid, self._prepare_order_picking(cr, uid, order, context=context))
-                        line_vals.update({'picking_id': picking_id,})
+                        line_vals.update({'picking_id': picking_id, })
                         move_id = move_obj.create(cr, uid, line_vals)
                     else:
                         # a service has no stock move
                         move_id = False
-                    
+
                     del line_vals['location_dest_id']
                     del line_vals['date']
                     del line_vals['date_expected']
@@ -160,12 +159,12 @@ class pos_order(osv.osv):
                     del line_vals['sale_line_id']
                     del line_vals['tracking_id']
                     del line_vals['state']
-                    
+
                     line_vals.update({
                         'move_id': move_id,
                         'date_planned': date_planned,
                     })
-                    
+
                     proc_id = procurement_obj.create(cr, uid, line_vals)
                     proc_ids.append(proc_id)
                     line.write({'procurement_id': proc_id})
@@ -189,8 +188,7 @@ class pos_order(osv.osv):
                         break
         order.write(val)
         return True
-    
-    
+
     def action_ship_create(self, cr, uid, ids, context=None):
         for order in self.browse(cr, uid, ids, context=context):
             self._create_pickings_and_procurements(cr, uid, order, order.order_line, None, context=context)
