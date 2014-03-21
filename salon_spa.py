@@ -202,6 +202,12 @@ class Appointment(resource_planning, base_state, Model):
             'available at this time!') % (
             model_obj.name))
 
+    def _check_client_available(self, cr, uid, ids, client_id, start_date, duration, context):
+        if not self.check_resource_availability(cr, uid, ids,
+                'client_id', client_id, start_date, duration, context):
+            self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
+        return True
+
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
         day_start, day_end = self._day_start_end_time(date) 
         # TODO filter by status and dont allow to create a new order if one is unpaid
@@ -358,14 +364,10 @@ class Appointment(resource_planning, base_state, Model):
         vals['duration'] = service_obj.duration
 
         # Check if client is available for service.
-        duration = vals.get('duration', False) or prev_appt['duration']
-        client =  vals.get('client_id', False) or prev_appt['client_id']
-        start_date = vals.get('start', False) or prev_appt['start']
-        client_available = self.check_resource_availability(cr, uid, ids,
-                            'client_id', client,
-                            start_date, duration=duration, context=context)
-        if not client_available:
-            self._raise_unavailable(cr, uid, 'res.partner', client, context)
+        self._check_client_available(cr, uid, ids,
+                vals.get('client_id', False) or prev_appt['client_id'],
+                vals.get('start', False) or prev_appt['start'],
+                vals.get('duration', False) or prev_appt['duration'], context)
 
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
@@ -430,15 +432,9 @@ class Appointment(resource_planning, base_state, Model):
         vals['duration'] = service_obj.duration
 
         # Check if client is available for service.
-        # TODO REFACTOR
-        duration = vals.get('duration', False)
-        client =  vals.get('client_id', False)
-        start_date = vals.get('start', False)
-        client_available = self.check_resource_availability(cr, uid, 0, # 0=ids es el id del appointment, pero este no existe aun
-                            'client_id', client,
-                            start_date, duration, context=context)
-        if not client_available:
-            self._raise_unavailable(cr, uid, 'res.partner', client, context)
+        self._check_client_available(cr, uid, 0,  # 0=ids es el id del appointment, pero este no existe aun
+                vals.get('client_id', False), vals.get('start', False),
+                vals.get('duration', False), context)
 
         id = super(Appointment, self).create(cr, uid, vals, context)
         ids = vals
