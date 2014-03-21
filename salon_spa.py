@@ -202,6 +202,49 @@ class Appointment(resource_planning, base_state, Model):
             'available at this time!') % (
             model_obj.name))
 
+    def _create_update_order_client_day(self, cr, uid, client_id, date, appt_id, service_obj, context=None):
+        """
+        Creates pos.order for a client in an specified day with an pos.order.line
+        that corresponds to the appointment/service.
+
+        If the pos.order exists, it just adds the pos.order.line.
+
+        """
+
+        try:
+            day_start, day_end = self._day_start_end_time(date) 
+            client_obj = self.pool.get('res.partner').\
+                    browse(cr, uid, client_id, context=context)
+            # TODO filter by status and dont allow to create a new order if one is unpaid
+            order_obj = self.pool.get('pos.order').\
+                    search(cr, uid, [('date_order', '>=', day_start),
+                                     ('date_order', '<=', day_end),
+                                     ('partner_id', '=', client_obj.id)],
+                           context=context)
+            # Order creation/modification
+            if order_obj:
+                order_id = order_obj[0]
+            else:  # create it
+                order_id = self.pool.get('pos.order').create(cr, uid, {
+                    'partner_id': client_obj.id,
+                    'date_order': date,
+                    # TODO get correct session
+                    'session_id': 1,
+                    })
+            # add service to order
+            self.pool.get('pos.order.line').create(cr, uid, {
+                'order_id': order_id,
+                'name': service_obj.service.name,
+                'product_id': service_obj.service.id,
+                'price_unit': service_obj.service.list_price,
+                'appointment_id': appt_id,
+                })
+            # TODO Limpiar facturas cuando se elimina un appt o servicio
+        except:
+            return False
+
+        return True
+
     def action_view_pos_order(self, cr, uid, ids, context=None):
         """
         This function returns an action that displays existing orders
@@ -320,7 +363,6 @@ class Appointment(resource_planning, base_state, Model):
         vals['duration'] = service_obj.duration
 
         # Check if client is available for service.
-        # TODO REFACTOR
         duration = vals.get('duration', False) or prev_appt['duration']
         client =  vals.get('client_id', False) or prev_appt['client_id']
         start_date = vals.get('start', False) or prev_appt['start']
@@ -380,43 +422,9 @@ class Appointment(resource_planning, base_state, Model):
                 del_order_line = self.pool.get('pos.order.line').\
                         unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
-                    raise
-
-                # TODO refactor to avoid repetition
-                # Look for an existing order for client/date
-                client_obj = self.pool.get('res.partner').\
-                        browse(cr, uid, current_appt['client_id'], context=context)
-                # TODO filter by status and dont allow to create a new order if one is unpaid
-                day_start, day_end = self._day_start_end_time(current_appt['start']) 
-                order_obj = self.pool.get('pos.order').\
-                        search(cr, uid, [('date_order', '>=', day_start),
-                                         ('date_order', '<=', day_end),
-                                         ('partner_id', '=', client_obj.id)],
-                               context=context)
-
-                # Order creation/modification
-                if order_obj:
-                    order_id = order_obj[0]
-                else:  # create it
-                    order_id = self.pool.get('pos.order').create(cr, uid, {
-                        'partner_id': client_obj.id,
-                        'date_order': current_appt['start'],
-                        # TODO get correct session
-                        'session_id': 1,
-                        })
-                # add service to order
-                self.pool.get('pos.order.line').create(cr, uid, {
-                    'order_id': order_id,
-                    'name': service_obj.service.name,
-                    'product_id': service_obj.service.id,
-                    'price_unit': vals['price'],
-                    'appointment_id': ids[0],
-                    })
-                # Si se elimina o cancela la cita
-                    # eliminar servicio de orden del cliente
-                # Luego de cada eliminacion de servicio, se valida si
-                # la orden no tiene servicios. Se elimina orden si es asi.
-
+                    raise  #TODO proper message
+                if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context=None):
+                    raise  #TODO proper message
         return result
 
     def create(self, cr, uid, vals, context=None):
@@ -438,10 +446,8 @@ class Appointment(resource_planning, base_state, Model):
             self._raise_unavailable(cr, uid, 'res.partner', client, context)
 
         id = super(Appointment, self).create(cr, uid, vals, context)
-
         ids = vals
 
-        # TODO refactor to avoid repetition
         # Validate employee work schedule
         employee_available = self.check_employee_availability(cr, uid, ids,\
                 vals['employee_id'], vals['start'], \
@@ -449,36 +455,8 @@ class Appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
-        # TODO refactor to avoid repetition
-        # Order creation/modification
-        appt_date = vals['start']
-        client_obj = self.pool.get('res.partner').\
-                browse(cr, uid, vals['client_id'], context=context)
-        # TODO filter by status and dont allow to create a new order if one is unpaid
-        day_start, day_end = self._day_start_end_time(appt_date) 
-        order_obj = self.pool.get('pos.order').\
-                search(cr, uid, [('date_order', '>=', day_start),
-                                 ('date_order', '<=', day_end),
-                                 ('partner_id', '=', client_obj.id)],
-                       context=context)
-        if order_obj:
-            order_id = order_obj[0]
-        else:  # create it
-            order_id = self.pool.get('pos.order').create(cr, uid, {
-                'partner_id': client_obj.id,
-                'date_order': appt_date,
-                # TODO get correct session
-                'session_id': 1,
-                })
-        # add service to order
-        self.pool.get('pos.order.line').create(cr, uid, {
-            'order_id': order_id,
-            'name': service_obj.service.name,
-            'product_id': service_obj.service.id,
-            'price_unit': vals['price'],
-            'appointment_id': id,
-            })
-
+        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context=None):
+            raise  #TODO proper message
         return id
 
 
