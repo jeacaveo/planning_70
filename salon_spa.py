@@ -419,9 +419,9 @@ class Appointment(resource_planning, base_state, Model):
                 del_order_line = self.pool.get('pos.order.line').\
                         unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
-                    raise  #TODO proper message
+                    raise except_orm(_('Error'), _('Error removing pos.order.line.'))
                 if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context):
-                    raise  #TODO proper message
+                    raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return result
 
     def create(self, cr, uid, vals, context=None):
@@ -447,7 +447,7 @@ class Appointment(resource_planning, base_state, Model):
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
         if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context):
-            raise  #TODO proper message
+            raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return id
 
 
