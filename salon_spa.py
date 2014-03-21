@@ -202,6 +202,15 @@ class Appointment(resource_planning, base_state, Model):
             'available at this time!') % (
             model_obj.name))
 
+    def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        day_start, day_end = self._day_start_end_time(date) 
+        # TODO filter by status and dont allow to create a new order if one is unpaid
+        return self.pool.get('pos.order').\
+                search(cr, uid, [('date_order', '>=', day_start),
+                                 ('date_order', '<=', day_end),
+                                 ('partner_id', '=', client_id)],
+                       context=context)
+
     def _create_update_order_client_day(self, cr, uid, client_id, date, appt_id, service_obj, context=None):
         """
         Creates pos.order for a client in an specified day with an pos.order.line
@@ -212,21 +221,13 @@ class Appointment(resource_planning, base_state, Model):
         """
 
         try:
-            day_start, day_end = self._day_start_end_time(date) 
-            client_obj = self.pool.get('res.partner').\
-                    browse(cr, uid, client_id, context=context)
-            # TODO filter by status and dont allow to create a new order if one is unpaid
-            order_obj = self.pool.get('pos.order').\
-                    search(cr, uid, [('date_order', '>=', day_start),
-                                     ('date_order', '<=', day_end),
-                                     ('partner_id', '=', client_obj.id)],
-                           context=context)
+            order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
             # Order creation/modification
-            if order_obj:
-                order_id = order_obj[0]
+            if order_ids:
+                order_id = order_ids[0]
             else:  # create it
                 order_id = self.pool.get('pos.order').create(cr, uid, {
-                    'partner_id': client_obj.id,
+                    'partner_id': client_id,
                     'date_order': date,
                     # TODO get correct session
                     'session_id': 1,
@@ -262,13 +263,7 @@ class Appointment(resource_planning, base_state, Model):
 
         # get orders for the client/day (of appointment)
         appt_obj = self.browse(cr, uid, ids, context=context)[0]
-        client_obj = appt_obj.client_id
-        day_start, day_end = self._day_start_end_time(appt_obj.start) 
-        order_ids = self.pool.get('pos.order').\
-                search(cr, uid, [('date_order', '>=', day_start),
-                                 ('date_order', '<=', day_end),
-                                 ('partner_id', '=', client_obj.id)],
-                       context=context)
+        order_ids = self._get_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
         result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
 
         # change to form view if theirs only one order for the client/day
@@ -423,7 +418,7 @@ class Appointment(resource_planning, base_state, Model):
                         unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
                     raise  #TODO proper message
-                if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context=None):
+                if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context):
                     raise  #TODO proper message
         return result
 
@@ -455,7 +450,7 @@ class Appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
-        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context=None):
+        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context):
             raise  #TODO proper message
         return id
 
