@@ -1,0 +1,48 @@
+<openerp>
+    <data>
+        <!-- POS Order tree view -->
+        <record id="salon_spa_point_of_sale_view_pos_order_tree_view" model="ir.ui.view">
+            <field name="name">salon.spa.point_of_sale.view.pos.order.tree</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+            <field name="arch" type="xml">
+                <field name="name" position="replace">
+                </field>
+                <field name="pos_reference" position="replace">
+                </field>
+                <field name="user_id" position="replace">
+                </field>
+                <field name="session_id" position="replace">
+                </field>
+                <field name="amount_total" position="replace">
+                </field>
+                <field name="state" position="replace">
+                </field>
+                <field name="invoice_id" position="replace">
+                </field>
+                <field name="date_order" position="after">
+                    <field name="user_id" />
+                    <field name="name" />
+                    <field name="pos_reference" />
+                    <field name="invoice_id" />
+                    <field name="session_id" />
+                    <field name="state" />
+                    <field name="amount_total" sum="Amount total"/>
+                </field>
+            </field>
+        </record>
+        <!-- POS Order search view -->
+        <record id="salon_spa_point_of_sale_view_pos_order_filter" model="ir.ui.view">
+            <field name="name">salon.spa.point_of_sale.view.pos.order.filter</field>
+            <field name="model">pos.order</field>
+            <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+            <field name="arch" type="xml">
+                <field name="name" position="before">
+                    <field name="partner_id" />
+                </field>
+                <field name="name" position="replace">
+                </field>
+            </field>
+        </record>
+    </data>
+</openerp>

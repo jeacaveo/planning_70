@@ -1,0 +1,16 @@
+<openerp>
+    <data>
+        <!-- Partner form view -->
+        <record id="salon_spa_view_partner_property_form" model="ir.ui.view">
+            <field name="name">salon.spa.res.partner.product.property.form.inherit</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <field name="date" position="after">
+                    <field name="referrer_id" domain="[('id','!=',id)]" />
+                    <field name="reference_used" />
+                </field>
+            </field>    
+        </record>       
+    </data>
+</openerp>
