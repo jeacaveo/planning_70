@@ -29,7 +29,7 @@ from openerp import netsvc
 
 
 #order is important here. resource_planning has to come first
-class Appointment(resource_planning, base_state, Model):
+class appointment(resource_planning, base_state, Model):
     _name = 'salon.spa.appointment'
 
     _resource_fields = ['employee_id', 'space_id']
@@ -369,7 +369,7 @@ class Appointment(resource_planning, base_state, Model):
                 vals.get('start', False) or prev_appt['start'],
                 vals.get('duration', False) or prev_appt['duration'], context)
 
-        result = super(Appointment, self).write(cr, uid, ids, vals, context)
+        result = super(appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
         # (Take all values not changed from previously saved appt)
@@ -436,7 +436,7 @@ class Appointment(resource_planning, base_state, Model):
                 vals.get('client_id', False), vals.get('start', False),
                 vals.get('duration', False), context)
 
-        id = super(Appointment, self).create(cr, uid, vals, context)
+        id = super(appointment, self).create(cr, uid, vals, context)
         ids = vals
 
         # Validate employee work schedule
@@ -451,7 +451,7 @@ class Appointment(resource_planning, base_state, Model):
         return id
 
 
-class Service(Model):
+class service(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.service'
@@ -488,7 +488,7 @@ class Service(Model):
         return {}
 
 
-class Space(Model):
+class space(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.space'
