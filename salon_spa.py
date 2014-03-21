@@ -174,7 +174,7 @@ class appointment(resource_planning, base_state, Model):
     def _to_datetime(self, date):
         """
         Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
-        Return a datetime object of said date. 
+        Return a datetime object of said date.
 
         """
 
@@ -208,7 +208,7 @@ class appointment(resource_planning, base_state, Model):
         return True
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
-        day_start, day_end = self._day_start_end_time(date) 
+        day_start, day_end = self._day_start_end_time(date)
         # TODO filter by status and dont allow to create a new order if one is unpaid
         return self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
@@ -290,7 +290,7 @@ class appointment(resource_planning, base_state, Model):
         # checked with self._assert_availability/self._check_availability.
         # (Employee work schedule doesn't fit here,
         #  unless modifications are done to those methods.)
-        day_start, day_end = self._day_start_end_time(start_date) 
+        day_start, day_end = self._day_start_end_time(start_date)
         start_date = self._to_datetime(start_date)
         end_date = start_date + timedelta(hours=duration)
 
@@ -358,7 +358,7 @@ class appointment(resource_planning, base_state, Model):
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
-        # store read-only fields 
+        # store read-only fields
         vals['price'] = service_obj.service.list_price
         vals['duration'] = service_obj.duration
 
@@ -380,7 +380,7 @@ class appointment(resource_planning, base_state, Model):
                 current_appt[key] = val
 
         # Check if employee is assigned to service.
-        if vals.get('employee_id', False): 
+        if vals.get('employee_id', False):
             employee_obj = self.pool.get('hr.employee').\
                     browse(cr, uid, current_appt['employee_id'],
                            context=context)
@@ -394,7 +394,7 @@ class appointment(resource_planning, base_state, Model):
                     service_obj.service.name))
 
         # Duration changes if service is modified
-        if vals.get('duration', False): 
+        if vals.get('duration', False):
             # Validate employee work schedule
             employee_available = self.check_employee_availability(cr, uid, ids,
                     current_appt['employee_id'], current_appt['start'],
