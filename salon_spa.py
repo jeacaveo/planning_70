@@ -78,6 +78,7 @@ class Appointment(resource_planning, base_state, Model):
             'active': True
         }
 
+    # appt = appointment
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
         """
         Validates if resources (space and employee) are available for the
@@ -90,18 +91,16 @@ class Appointment(resource_planning, base_state, Model):
         """
 
         if service_id:
-            service_object = self.pool.get('salon.spa.service').\
+            service_obj = self.pool.get('salon.spa.service').\
                     browse(cr, uid, service_id, context=context)
-            date, duration = context['start_date'], service_object.duration,
-            start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            end_date = start_date + timedelta(hours=duration)
+            start_date, duration = context['start_date'], service_obj.duration,
 
             # Space availability validation
             space_ids = []
-            for space in service_object.space_ids:
+            for space in service_obj.space_ids:
                 space_available = self.check_resource_availability(cr, uid, ids,\
                                     'space_id', space.id, start_date, \
-                                    end_date, duration, context)
+                                    duration, context)
                 if space_available:
                     space_ids.append(space.id)
             if space_ids:
@@ -110,16 +109,16 @@ class Appointment(resource_planning, base_state, Model):
                 assigned_space = None
 
             # Employee availability validation
-            employee_object = self.pool.get('hr.employee').\
+            employee_obj = self.pool.get('hr.employee').\
                     search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             employee_ids = []
-            for employee in employee_object:
+            for employee in employee_obj:
                 employee_available = self.check_resource_availability(cr, uid, ids,\
                                     'employee_id', employee, start_date, \
-                                    end_date, duration, context)
+                                    duration, context)
                 if employee_available:
                     employee_available = self.check_employee_availability(cr, uid, ids,\
-                            employee, start_date, end_date, duration, context)
+                            employee, start_date, duration, context)
                     if employee_available:
                         employee_ids.append(employee)
             if employee_ids:
@@ -129,9 +128,9 @@ class Appointment(resource_planning, base_state, Model):
 
             return {
                     'value': {'duration': duration,
-                              'price': service_object.service.list_price,
+                              'price': service_obj.service.list_price,
                               'space_id': assigned_space,
-                              'category_id': service_object.categ_id,
+                              'category_id': service_obj.categ_id,
                               'employee_id': assigned_employee
                         },
                     'domain': {'employee_id': [('id', 'in', employee_ids)],
@@ -155,16 +154,10 @@ class Appointment(resource_planning, base_state, Model):
         """
 
         if employee_id:
-            start_date = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
             employee_available = self.check_employee_availability(cr, uid, ids,\
-                    employee_id, start_date, duration=duration, context=context)
+                    employee_id, start, duration, context=context)
             if not employee_available:
-                employee_object = self.pool.get('hr.employee').\
-                        browse(cr, uid, employee_id,
-                               context=context)
-                raise except_orm(_('Error'), _('%s is not '
-                    'programmed to work at this time!') % (
-                    employee_object.name))
+                self._raise_unavailable(cr, uid, 'hr.employee', employee_id, context)
         return {}
 
     def case_open(self, cr, uid, ids, context=None):
@@ -179,43 +172,70 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
+    def _to_datetime(self, date):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return a datetime object of said date. 
+
+        """
+
+        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+
+    def _day_start_end_time(self, date):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return 2 string dates corresponding to the starting and ending hours
+        of the day of the original date.
+
+        """
+
+        day_start = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        return day_start, day_end
+
+    def _raise_unavailable(self, cr, uid, model, ids, context=None):
+        model_obj = self.pool.get(model).\
+                browse(cr, uid, ids, context=context)
+        raise except_orm(_('Error'), _('%s is not '
+            'available at this time!') % (
+            model_obj.name))
+
     def action_view_pos_order(self, cr, uid, ids, context=None):
-        '''
+        """
         This function returns an action that displays existing orders
         of the client for the same day of this appointment.
         It can either be in a list,
         or in a form view if there is only one invoice to show.
 
-        '''
+        """
 
         mod_obj = self.pool.get('ir.model.data')
         act_obj = self.pool.get('ir.actions.act_window')
-
         result = mod_obj.get_object_reference(cr, uid, 'point_of_sale', 'action_pos_pos_form')
         id = result and result[1] or False
         result = act_obj.read(cr, uid, [id], context=context)[0]
-        appt_object = self.browse(cr, uid, ids, context=context)[0]
-        client_object = appt_object.client_id
-        # TODO REFACTOR!!!
-        day_start = datetime.strptime(appt_object.start, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
-        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = datetime.strptime(appt_object.start, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
-        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+
         # get orders for the client/day (of appointment)
+        appt_obj = self.browse(cr, uid, ids, context=context)[0]
+        client_obj = appt_obj.client_id
+        day_start, day_end = self._day_start_end_time(appt_obj.start) 
         order_ids = self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
-                                 ('partner_id', '=', client_object.id)],
+                                 ('partner_id', '=', client_obj.id)],
                        context=context)
         result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
+
         # change to form view if theirs only one order for the client/day
         if len(order_ids) == 1:
             result['views'] = [(False, 'form')]
             result['res_id'] = order_ids and order_ids[0] or False
         return result
 
-    def check_resource_availability(self, cr, uid, ids, resource_type, resource, \
-            start_date, end_date=None, duration=None, context=None):
+    def check_resource_availability(self, cr, uid, ids,
+            resource_type, resource, start_date, duration, context=None):
         """
         Validates that the specified resource_type/resource is available.
 
@@ -227,36 +247,29 @@ class Appointment(resource_planning, base_state, Model):
         # checked with self._assert_availability/self._check_availability.
         # (Employee work schedule doesn't fit here,
         #  unless modifications are done to those methods.)
-        if not end_date:
-            if duration:
-                end_date = start_date + timedelta(hours=duration)
-            else:
-                return False
-        day_start = start_date.replace(hour=0, minute=0, second=0)
-        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = start_date.replace(hour=23, minute=59, second=59)
-        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        day_start, day_end = self._day_start_end_time(start_date) 
+        start_date = self._to_datetime(start_date)
+        end_date = start_date + timedelta(hours=duration)
 
-        appointment_ids = self.pool.get('salon.spa.appointment').\
+        appt_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
                                  ('id', '!=', ids),
                                  (resource_type, '=', resource)],
                         context=context)
 
-        for appointment in appointment_ids:
-            appointment_object = self.pool.get('salon.spa.appointment').\
-                    browse(cr, uid, appointment, context=context)
-            # appt = appointment
-            appt_start_date = datetime.strptime(appointment_object.start, '%Y-%m-%d %H:%M:%S')
-            appt_end_date = appt_start_date + timedelta(hours=appointment_object.duration)
+        for appt in appt_ids:
+            appt_obj = self.pool.get('salon.spa.appointment').\
+                    browse(cr, uid, appt, context=context)
+            appt_start_date = datetime.strptime(appt_obj.start, '%Y-%m-%d %H:%M:%S')
+            appt_end_date = appt_start_date + timedelta(hours=appt_obj.duration)
             if  (start_date >= appt_start_date and start_date < appt_end_date) \
                 or (end_date > appt_start_date and end_date <= appt_end_date):
                 return False
         return True
 
-    def check_employee_availability(self, cr, uid, ids, employee_id, start_date,
-            end_date=None, duration=None, context=None):
+    def check_employee_availability(self, cr, uid, ids,
+            employee_id, start_date, duration, context=None):
         """
         Validates that the employee is able to work at the specified time.
 
@@ -264,27 +277,23 @@ class Appointment(resource_planning, base_state, Model):
 
         """
 
-        # TODO refactor to avoid repetition
-        if not end_date:
-            if duration:
-                end_date = start_date + timedelta(hours=duration)
-            else:
-                return False
+        start_date = self._to_datetime(start_date)
+        end_date = start_date + timedelta(hours=duration)
+
         start_date = fields.datetime.context_timestamp(
                 cr, uid, start_date, context=context)
         end_date = fields.datetime.context_timestamp(
                 cr, uid, end_date, context=context)
 
-        employee_object = self.pool.get('hr.employee').\
+        employee_obj = self.pool.get('hr.employee').\
                 browse(cr, uid, employee_id, context=context)
         appt_day_of_week = start_date.weekday()
         appt_start_hour = start_date.hour
         appt_end_hour = end_date.hour + (end_date.minute / 60)  # float format
 
         # if employee has no work schedule assigned, skip it
-        if employee_object.working_hours:
-            # appt = appointment
-            for period in employee_object.working_hours.attendance_ids:
+        if employee_obj.working_hours:
+            for period in employee_obj.working_hours.attendance_ids:
                 if int(period.dayofweek) == appt_day_of_week:
                     if appt_start_hour >= period.hour_from \
                         and appt_end_hour <= period.hour_to:
@@ -293,40 +302,33 @@ class Appointment(resource_planning, base_state, Model):
 
     def write(self, cr, uid, ids, vals, context=None):
         # keys in vals correspond with fields that have changed
-        # appt = appointment
         # Get values previous to save
         # prev_appt holds state of appt previous to save
-        appointment_object = self.pool.get('salon.spa.appointment').\
+        appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
-        prev_appt = {'employee_id': appointment_object.employee_id.id,
-                     'start': appointment_object.start,
-                     'client_id': appointment_object.client_id.id,
-                     'duration': appointment_object.duration,
-                     'service_id': appointment_object.service_id.id,
+        prev_appt = {'employee_id': appt_obj.employee_id.id,
+                     'start': appt_obj.start,
+                     'client_id': appt_obj.client_id.id,
+                     'duration': appt_obj.duration,
+                     'service_id': appt_obj.service_id.id,
                      }
 
-        service_object = self.pool.get('salon.spa.service').\
+        service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
         # store read-only fields 
-        vals['price'] = service_object.service.list_price
-        vals['duration'] = service_object.duration
+        vals['price'] = service_obj.service.list_price
+        vals['duration'] = service_obj.duration
 
         # Check if client is available for service.
         # TODO REFACTOR
-        date = vals.get('start', False) or prev_appt['start']
         duration = vals.get('duration', False) or prev_appt['duration']
         client =  vals.get('client_id', False) or prev_appt['client_id']
-        start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-        end_date = start_date + timedelta(hours=duration)
+        start_date = vals.get('start', False) or prev_appt['start']
         client_available = self.check_resource_availability(cr, uid, ids,
                             'client_id', client,
-                            start_date, end_date, context=context)
+                            start_date, duration=duration, context=context)
         if not client_available:
-            client_object = self.pool.get('res.partner').\
-                    browse(cr, uid, client, context=context)
-            raise except_orm(_('Error'), _('%s is already '
-                'on another service at this time!') % (
-                client_object.name))
+            self._raise_unavailable(cr, uid, 'res.partner', client, context)
 
         result = super(Appointment, self).write(cr, uid, ids, vals, context)
 
@@ -341,34 +343,26 @@ class Appointment(resource_planning, base_state, Model):
 
         # Check if employee is assigned to service.
         if vals.get('employee_id', False): 
-            employee_object = self.pool.get('hr.employee').\
+            employee_obj = self.pool.get('hr.employee').\
                     browse(cr, uid, current_appt['employee_id'],
                            context=context)
             service_ids = []
-            for service in employee_object.service_ids:
+            for service in employee_obj.service_ids:
                 service_ids.append(service.id)
             if current_appt['service_id'] not in service_ids:
                 raise except_orm(_('Error'), _('%s is not '
                     'assigned to work with %s!') % (
-                    employee_object.name,
-                    service_object.service.name))
+                    employee_obj.name,
+                    service_obj.service.name))
 
-        # Duration changes if service or duration is modified
+        # Duration changes if service is modified
         if vals.get('duration', False): 
-            # TODO refactor to avoid repetition
             # Validate employee work schedule
-            start_date = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S')
-            end_date = start_date + timedelta(hours=current_appt['duration'])
-            employee_available = self.check_employee_availability(cr, uid, ids,\
-                    current_appt['employee_id'], start_date, \
-                    end_date, current_appt['duration'], context)
+            employee_available = self.check_employee_availability(cr, uid, ids,
+                    current_appt['employee_id'], current_appt['start'],
+                    current_appt['duration'], context)
             if not employee_available:
-                employee_object = self.pool.get('hr.employee').\
-                        browse(cr, uid, current_appt['employee_id'],
-                               context=context)
-                raise except_orm(_('Error'), _('%s is not '
-                    'programmed to work at this time!') % (
-                    employee_object.name))
+                self._raise_unavailable(cr, uid, 'hr.employee', current_appt['employee_id'], context)
 
         # If one of the orders related fields changes
         # (client_id, start, service_id), delete order line for appt.
@@ -380,35 +374,32 @@ class Appointment(resource_planning, base_state, Model):
                 or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                    != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                 or current_appt['service_id'] != prev_appt['service_id']:
-                order_line_object = self.pool.get('pos.order.line').\
+                order_line_obj = self.pool.get('pos.order.line').\
                         search(cr, uid, [('appointment_id', '=', ids[0])],
                                context=context)
                 del_order_line = self.pool.get('pos.order.line').\
-                        unlink(cr, uid, order_line_object[0], context=context)
+                        unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
                     raise
 
                 # TODO refactor to avoid repetition
                 # Look for an existing order for client/date
-                client_object = self.pool.get('res.partner').\
+                client_obj = self.pool.get('res.partner').\
                         browse(cr, uid, current_appt['client_id'], context=context)
                 # TODO filter by status and dont allow to create a new order if one is unpaid
-                day_start = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
-                day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-                day_end = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
-                day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
-                order_object = self.pool.get('pos.order').\
+                day_start, day_end = self._day_start_end_time(current_appt['start']) 
+                order_obj = self.pool.get('pos.order').\
                         search(cr, uid, [('date_order', '>=', day_start),
                                          ('date_order', '<=', day_end),
-                                         ('partner_id', '=', client_object.id)],
+                                         ('partner_id', '=', client_obj.id)],
                                context=context)
 
                 # Order creation/modification
-                if order_object:
-                    order_id = order_object[0]
+                if order_obj:
+                    order_id = order_obj[0]
                 else:  # create it
                     order_id = self.pool.get('pos.order').create(cr, uid, {
-                        'partner_id': client_object.id,
+                        'partner_id': client_obj.id,
                         'date_order': current_appt['start'],
                         # TODO get correct session
                         'session_id': 1,
@@ -416,8 +407,8 @@ class Appointment(resource_planning, base_state, Model):
                 # add service to order
                 self.pool.get('pos.order.line').create(cr, uid, {
                     'order_id': order_id,
-                    'name': service_object.service.name,
-                    'product_id': service_object.service.id,
+                    'name': service_obj.service.name,
+                    'product_id': service_obj.service.id,
                     'price_unit': vals['price'],
                     'appointment_id': ids[0],
                     })
@@ -429,28 +420,22 @@ class Appointment(resource_planning, base_state, Model):
         return result
 
     def create(self, cr, uid, vals, context=None):
-        service_object = self.pool.get('salon.spa.service').\
+        service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals['service_id'], context=context)
         # store read-only fields
-        vals['price'] = service_object.service.list_price
-        vals['duration'] = service_object.duration
+        vals['price'] = service_obj.service.list_price
+        vals['duration'] = service_obj.duration
 
         # Check if client is available for service.
         # TODO REFACTOR
-        date = vals.get('start', False)
         duration = vals.get('duration', False)
         client =  vals.get('client_id', False)
-        start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-        end_date = start_date + timedelta(hours=duration)
+        start_date = vals.get('start', False)
         client_available = self.check_resource_availability(cr, uid, 0, # 0=ids es el id del appointment, pero este no existe aun
                             'client_id', client,
-                            start_date, end_date, context=context)
+                            start_date, duration, context=context)
         if not client_available:
-            client_object = self.pool.get('res.partner').\
-                    browse(cr, uid, client, context=context)
-            raise except_orm(_('Error'), _('%s is already '
-                'on another service at this time!') % (
-                client_object.name))
+            self._raise_unavailable(cr, uid, 'res.partner', client, context)
 
         id = super(Appointment, self).create(cr, uid, vals, context)
 
@@ -458,47 +443,38 @@ class Appointment(resource_planning, base_state, Model):
 
         # TODO refactor to avoid repetition
         # Validate employee work schedule
-        start_date = datetime.strptime(vals['start'], '%Y-%m-%d %H:%M:%S')
-        end_date = start_date + timedelta(hours=vals['duration'])
         employee_available = self.check_employee_availability(cr, uid, ids,\
-                vals['employee_id'], start_date, \
-                end_date, vals['duration'], context)
+                vals['employee_id'], vals['start'], \
+                vals['duration'], context)
         if not employee_available:
-            employee_object = self.pool.get('hr.employee').\
-                    browse(cr, uid, vals['employee_id'], context=context)
-            raise except_orm(_('Error'), _('%s is not '
-                'programmed to work at this time!') % (
-                employee_object.name))
+            self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
         # TODO refactor to avoid repetition
         # Order creation/modification
-        appointment_date = vals['start']
-        client_object = self.pool.get('res.partner').\
+        appt_date = vals['start']
+        client_obj = self.pool.get('res.partner').\
                 browse(cr, uid, vals['client_id'], context=context)
         # TODO filter by status and dont allow to create a new order if one is unpaid
-        day_start = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
-        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
-        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
-        order_object = self.pool.get('pos.order').\
+        day_start, day_end = self._day_start_end_time(appt_date) 
+        order_obj = self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
-                                 ('partner_id', '=', client_object.id)],
+                                 ('partner_id', '=', client_obj.id)],
                        context=context)
-        if order_object:
-            order_id = order_object[0]
+        if order_obj:
+            order_id = order_obj[0]
         else:  # create it
             order_id = self.pool.get('pos.order').create(cr, uid, {
-                'partner_id': client_object.id,
-                'date_order': appointment_date,
+                'partner_id': client_obj.id,
+                'date_order': appt_date,
                 # TODO get correct session
                 'session_id': 1,
                 })
         # add service to order
         self.pool.get('pos.order.line').create(cr, uid, {
             'order_id': order_id,
-            'name': service_object.service.name,
-            'product_id': service_object.service.id,
+            'name': service_obj.service.name,
+            'product_id': service_obj.service.id,
             'price_unit': vals['price'],
             'appointment_id': id,
             })
@@ -533,11 +509,11 @@ class Service(Model):
 
     def onchange_service_service(self, cr, uid, ids, service, context=None):
         if service:
-            product_object = self.pool.get('product.product').\
+            product_obj = self.pool.get('product.product').\
                     browse(cr, uid, service, context=context)
             return {'value':
-                        {'name': product_object.name,
-                         'categ_id': product_object.categ_id.id,
+                        {'name': product_obj.name,
+                         'categ_id': product_obj.categ_id.id,
                              }
                    }
         return {}
