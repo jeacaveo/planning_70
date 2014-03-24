@@ -194,6 +194,11 @@ class appointment(resource_planning, base_state, Model):
         day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
         return day_start, day_end
 
+    def _validate_past_date(self, date):
+        if self._to_datetime(date) < datetime.today():
+            raise except_orm(_('Error'), _("Can't create an event in the past."))
+        return True
+
     def _raise_unavailable(self, cr, uid, model, ids, context=None):
         model_obj = self.pool.get(model).\
                 browse(cr, uid, ids, context=context)
@@ -355,6 +360,7 @@ class appointment(resource_planning, base_state, Model):
                      'duration': appt_obj.duration,
                      'service_id': appt_obj.service_id.id,
                      }
+        self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
@@ -424,6 +430,8 @@ class appointment(resource_planning, base_state, Model):
         return result
 
     def create(self, cr, uid, vals, context=None):
+        self._validate_past_date(vals['start'])
+
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals['service_id'], context=context)
         # store read-only fields
