@@ -24,7 +24,8 @@
             <field name="arch" type="xml">
                 <form string="Citas" version="7.0">
                     <header>
-                        <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight" />
+                        <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
