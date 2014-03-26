@@ -65,7 +65,7 @@
                     <field name="price" />
                     <field name="state" />
                     <button name="case_pending" string="En Espera" type="object"
-                            states="open" icon="gtk-undo"/>
+                            states="draft,open" icon="gtk-undo"/>
                     <button name="case_open" string="Confirmar" type="object"
                             states="pending" icon="gtk-jump-to"/>
                     <button name="case_close" string="Concluida" type="object"
