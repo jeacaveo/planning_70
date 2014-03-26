@@ -23,13 +23,12 @@ from datetime import datetime, timedelta
 from openerp.addons.base_status.base_state import base_state
 from openerp.tools.translate import _
 from openerp.osv.orm import Model, except_orm
-from openerp.osv import fields, osv
+from openerp.osv import fields
 from openerp.addons.resource_planning.resource_planning import resource_planning
-from openerp import netsvc
 
 
 #order is important here. resource_planning has to come first
-class Appointment(resource_planning, base_state, Model):
+class appointment(resource_planning, base_state, Model):
     _name = 'salon.spa.appointment'
 
     _resource_fields = ['employee_id', 'space_id']
@@ -73,11 +72,80 @@ class Appointment(resource_planning, base_state, Model):
             'active': fields.boolean('Activo', required=False),
             }
 
+    def _last_appointment_client(self, cr, uid, context=None):
+        """
+        Search for the last appointment created for today and return
+        it's client id.
+
+        """
+
+        today = datetime.strftime(datetime.today(), "%Y-%m-%d %H:%M:%S")
+        day_start, day_end = self._day_start_end_time(today)
+        appt_id = self.search(cr, uid,
+                    [('start', '>=', day_start),
+                     ('start', '<=', day_end)],
+                order='create_date desc', context=context)
+        if appt_id:
+            appt_obj = self.browse(cr, uid, appt_id[0], context=context)
+            return appt_obj.client_id.id
+
+    def _round_time(self, dt=None, round_to=60):
+       """
+       Round a datetime object to any time laps in seconds
+       dt : datetime.datetime object, default now.
+       round_to : Closest number of seconds to round to, default 1 minute.
+       Author: Thierry Husson 2012 - Use it as you want but don't blame me.
+
+       """
+
+       if dt == None : dt = datetime.now()
+       seconds = (dt - dt.min).seconds
+       # // is a floor division, not a comment on following line:
+       rounding = (seconds + round_to / 2) // round_to * round_to
+       return dt + timedelta(0, rounding - seconds, -dt.microsecond)
+
+    def _next_available_date(self, cr, uid, context=None):
+        """
+        Search the closest available datetime for an appointment
+        (duration not considered)
+
+        """
+
+        # Round to next five minute interval
+        date_start = self._round_time(round_to=60 * 5) + timedelta(minutes=5)
+        # TODO use correct timezone to compare with resource.calendar.attendance
+        # attd = attendance
+        calendar_id = self.pool.get('resource.calendar').\
+                search(cr, uid, [('name', '=', 'Horario')], context=context)
+        attd_id = self.pool.get('resource.calendar.attendance').\
+                search(cr, uid,
+                       [('dayofweek', '=', date_start.weekday()),
+                        ('calendar_id', '=', calendar_id)],
+                       context=context)
+        attd_obj = self.pool.get('resource.calendar.attendance').\
+                browse(cr, uid, attd_id[0], context=context)
+        date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
+        minutes_till_closing = (date_closing - date_start).seconds / 60
+        for minutes in range(5, minutes_till_closing, 5):
+            if date_start.hour >= attd_obj.hour_from \
+                and date_start.hour < attd_obj.hour_to:
+                date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
+                if not self.search(cr, uid,
+                    [('start', '>=', self._datetime_to_string(date_start)),
+                     ('start', '<=', self._datetime_to_string(date_end))],
+                    context=context):
+                    return self._datetime_to_string(date_start)
+            date_start = date_end + timedelta(minutes=minutes)
+        return None
+
     _defaults = {
+            'client_id': _last_appointment_client,
+            'start': _next_available_date,
             'state': 'draft',
             'active': True
         }
 
+    # appt = appointment
     def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
         """
         Validates if resources (space and employee) are available for the
@@ -90,18 +158,16 @@ class Appointment(resource_planning, base_state, Model):
         """
 
         if service_id:
-            service_object = self.pool.get('salon.spa.service').\
+            service_obj = self.pool.get('salon.spa.service').\
                     browse(cr, uid, service_id, context=context)
-            date, duration = context['start_date'], service_object.duration,
-            start_date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-            end_date = start_date + timedelta(hours=duration)
+            start_date, duration = context['start_date'], service_obj.duration,
 
             # Space availability validation
             space_ids = []
-            for space in service_object.space_ids:
+            for space in service_obj.space_ids:
                 space_available = self.check_resource_availability(cr, uid, ids,\
                                     'space_id', space.id, start_date, \
-                                    end_date, duration, context)
+                                    duration, context)
                 if space_available:
                     space_ids.append(space.id)
             if space_ids:
@@ -110,16 +176,16 @@ class Appointment(resource_planning, base_state, Model):
                 assigned_space = None
 
             # Employee availability validation
-            employee_object = self.pool.get('hr.employee').\
+            employee_obj = self.pool.get('hr.employee').\
                     search(cr, uid, [('service_ids', 'in', service_id)], context=context)
             employee_ids = []
-            for employee in employee_object:
+            for employee in employee_obj:
                 employee_available = self.check_resource_availability(cr, uid, ids,\
                                     'employee_id', employee, start_date, \
-                                    end_date, duration, context)
+                                    duration, context)
                 if employee_available:
                     employee_available = self.check_employee_availability(cr, uid, ids,\
-                            employee, start_date, end_date, duration, context)
+                            employee, start_date, duration, context)
                     if employee_available:
                         employee_ids.append(employee)
             if employee_ids:
@@ -129,9 +195,9 @@ class Appointment(resource_planning, base_state, Model):
 
             return {
                     'value': {'duration': duration,
-                              'price': service_object.service.list_price,
+                              'price': service_obj.service.list_price,
                               'space_id': assigned_space,
-                              'category_id': service_object.categ_id,
+                              'category_id': service_obj.categ_id,
                               'employee_id': assigned_employee
                         },
                     'domain': {'employee_id': [('id', 'in', employee_ids)],
@@ -155,16 +221,10 @@ class Appointment(resource_planning, base_state, Model):
         """
 
         if employee_id:
-            start_date = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
             employee_available = self.check_employee_availability(cr, uid, ids,\
-                    employee_id, start_date, duration=duration, context=context)
+                    employee_id, start, duration, context=context)
             if not employee_available:
-                employee_object = self.pool.get('hr.employee').\
-                        browse(cr, uid, employee_id,
-                               context=context)
-                raise except_orm(_('Error'), _('%s is not '
-                    'programmed to work at this time!') % (
-                    employee_object.name))
+                self._raise_unavailable(cr, uid, 'hr.employee', employee_id, context)
         return {}
 
     def case_open(self, cr, uid, ids, context=None):
@@ -179,8 +239,129 @@ class Appointment(resource_planning, base_state, Model):
         values = {'active': True}
         return self.case_set(cr, uid, ids, 'open', values, context=context)
 
-    def check_resource_availability(self, cr, uid, ids, resource_type, resource, \
-            start_date, end_date=None, duration=None, context=None):
+    def _to_datetime(self, date):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return a datetime object of said date.
+
+        """
+
+        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+
+    def _datetime_to_string(self, date):
+        """
+        Get a datetime object.
+        Return a string date in 'YYYY-mm-dd HH:MM:SS' format
+        of said date.
+
+        """
+
+        return datetime.strftime(date, "%Y-%m-%d %H:%M:%S")
+
+    def _day_start_end_time(self, date):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return 2 string dates corresponding to the starting and ending hours
+        of the day of the original date.
+
+        """
+
+        day_start = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        return day_start, day_end
+
+    def _validate_past_date(self, date):
+        if self._to_datetime(date) < datetime.today():
+            raise except_orm(_('Error'), _("Can't create an event in the past."))
+        return True
+
+    def _raise_unavailable(self, cr, uid, model, ids, context=None):
+        model_obj = self.pool.get(model).\
+                browse(cr, uid, ids, context=context)
+        raise except_orm(_('Error'), _('%s is not '
+            'available at this time!') % (
+            model_obj.name))
+
+    def _check_client_available(self, cr, uid, ids, client_id, start_date, duration, context):
+        if not self.check_resource_availability(cr, uid, ids,
+                'client_id', client_id, start_date, duration, context):
+            self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
+        return True
+
+    def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        day_start, day_end = self._day_start_end_time(date)
+        # TODO filter by status and dont allow to create a new order if one is unpaid
+        return self.pool.get('pos.order').\
+                search(cr, uid, [('date_order', '>=', day_start),
+                                 ('date_order', '<=', day_end),
+                                 ('partner_id', '=', client_id)],
+                       context=context)
+
+    def _create_update_order_client_day(self, cr, uid, client_id, date, appt_id, service_obj, context=None):
+        """
+        Creates pos.order for a client in an specified day with an pos.order.line
+        that corresponds to the appointment/service.
+
+        If the pos.order exists, it just adds the pos.order.line.
+
+        """
+
+        try:
+            order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
+            # Order creation/modification
+            if order_ids:
+                order_id = order_ids[0]
+            else:  # create it
+                order_id = self.pool.get('pos.order').create(cr, uid, {
+                    'partner_id': client_id,
+                    'date_order': date,
+                    # TODO get correct session
+                    'session_id': 1,
+                    })
+            # add service to order
+            self.pool.get('pos.order.line').create(cr, uid, {
+                'order_id': order_id,
+                'name': service_obj.service.name,
+                'product_id': service_obj.service.id,
+                'price_unit': service_obj.service.list_price,
+                'appointment_id': appt_id,
+                })
+            # TODO Limpiar facturas cuando se elimina un appt o servicio
+        except:
+            return False
+
+        return True
+
+    def action_view_pos_order(self, cr, uid, ids, context=None):
+        """
+        This function returns an action that displays existing orders
+        of the client for the same day of this appointment.
+        It can either be in a list,
+        or in a form view if there is only one invoice to show.
+
+        """
+
+        mod_obj = self.pool.get('ir.model.data')
+        act_obj = self.pool.get('ir.actions.act_window')
+        result = mod_obj.get_object_reference(cr, uid, 'point_of_sale', 'action_pos_pos_form')
+        id = result and result[1] or False
+        result = act_obj.read(cr, uid, [id], context=context)[0]
+
+        # get orders for the client/day (of appointment)
+        appt_obj = self.browse(cr, uid, ids, context=context)[0]
+        order_ids = self._get_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
+        result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
+
+        # change to form view if theirs only one order for the client/day
+        if len(order_ids) == 1:
+            result['views'] = [(False, 'form')]
+            result['res_id'] = order_ids and order_ids[0] or False
+        return result
+
+    def check_resource_availability(self, cr, uid, ids,
+            resource_type, resource, start_date, duration, context=None):
         """
         Validates that the specified resource_type/resource is available.
 
@@ -192,36 +373,29 @@ class Appointment(resource_planning, base_state, Model):
         # checked with self._assert_availability/self._check_availability.
         # (Employee work schedule doesn't fit here,
         #  unless modifications are done to those methods.)
-        if not end_date:
-            if duration:
-                end_date = start_date + timedelta(hours=duration)
-            else:
-                return False
-        day_start = start_date.replace(hour=0, minute=0, second=0)
-        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = start_date.replace(hour=23, minute=59, second=59)
-        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        day_start, day_end = self._day_start_end_time(start_date)
+        start_date = self._to_datetime(start_date)
+        end_date = start_date + timedelta(hours=duration)
 
-        appointment_ids = self.pool.get('salon.spa.appointment').\
+        appt_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
                                  ('id', '!=', ids),
                                  (resource_type, '=', resource)],
                         context=context)
 
-        for appointment in appointment_ids:
-            appointment_object = self.pool.get('salon.spa.appointment').\
-                    browse(cr, uid, appointment, context=context)
-            # appt = appointment
-            appt_start_date = datetime.strptime(appointment_object.start, '%Y-%m-%d %H:%M:%S')
-            appt_end_date = appt_start_date + timedelta(hours=appointment_object.duration)
+        for appt in appt_ids:
+            appt_obj = self.pool.get('salon.spa.appointment').\
+                    browse(cr, uid, appt, context=context)
+            appt_start_date = datetime.strptime(appt_obj.start, '%Y-%m-%d %H:%M:%S')
+            appt_end_date = appt_start_date + timedelta(hours=appt_obj.duration)
             if  (start_date >= appt_start_date and start_date < appt_end_date) \
                 or (end_date > appt_start_date and end_date <= appt_end_date):
                 return False
         return True
 
-    def check_employee_availability(self, cr, uid, ids, employee_id, start_date,
-            end_date=None, duration=None, context=None):
+    def check_employee_availability(self, cr, uid, ids,
+            employee_id, start_date, duration, context=None):
         """
         Validates that the employee is able to work at the specified time.
 
@@ -229,26 +403,23 @@ class Appointment(resource_planning, base_state, Model):
 
         """
 
-        if not end_date:
-            if duration:
-                end_date = start_date + timedelta(hours=duration)
-            else:
-                return False
+        start_date = self._to_datetime(start_date)
+        end_date = start_date + timedelta(hours=duration)
+
         start_date = fields.datetime.context_timestamp(
                 cr, uid, start_date, context=context)
         end_date = fields.datetime.context_timestamp(
                 cr, uid, end_date, context=context)
 
-        employee_object = self.pool.get('hr.employee').\
+        employee_obj = self.pool.get('hr.employee').\
                 browse(cr, uid, employee_id, context=context)
         appt_day_of_week = start_date.weekday()
         appt_start_hour = start_date.hour
         appt_end_hour = end_date.hour + (end_date.minute / 60)  # float format
 
         # if employee has no work schedule assigned, skip it
-        if employee_object.working_hours:
-            # appt = appointment
-            for period in employee_object.working_hours.attendance_ids:
+        if employee_obj.working_hours:
+            for period in employee_obj.working_hours.attendance_ids:
                 if int(period.dayofweek) == appt_day_of_week:
                     if appt_start_hour >= period.hour_from \
                         and appt_end_hour <= period.hour_to:
@@ -257,23 +428,31 @@ class Appointment(resource_planning, base_state, Model):
 
     def write(self, cr, uid, ids, vals, context=None):
         # keys in vals correspond with fields that have changed
-        # appt = appointment
         # Get values previous to save
         # prev_appt holds state of appt previous to save
-        appointment_object = self.pool.get('salon.spa.appointment').\
+        appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
-        prev_appt = {'employee_id': appointment_object.employee_id.id,
-                     'start': appointment_object.start,
-                     'client_id': appointment_object.client_id.id,
-                     'duration': appointment_object.duration,
-                     'service_id': appointment_object.service_id.id,
+        prev_appt = {'employee_id': appt_obj.employee_id.id,
+                     'start': appt_obj.start,
+                     'client_id': appt_obj.client_id.id,
+                     'duration': appt_obj.duration,
+                     'service_id': appt_obj.service_id.id,
                      }
+        self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
-        service_object = self.pool.get('salon.spa.service').\
+        service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
-        # store read-only field price
-        vals['price'] = service_object.service.list_price
-        result = super(Appointment, self).write(cr, uid, ids, vals, context)
+        # store read-only fields
+        vals['price'] = service_obj.service.list_price
+        vals['duration'] = service_obj.duration
+
+        # Check if client is available for service.
+        self._check_client_available(cr, uid, ids,
+                vals.get('client_id', False) or prev_appt['client_id'],
+                vals.get('start', False) or prev_appt['start'],
+                vals.get('duration', False) or prev_appt['duration'], context)
+
+        result = super(appointment, self).write(cr, uid, ids, vals, context)
 
         # current_appt holds final state of appt
         # (Take all values not changed from previously saved appt)
@@ -284,22 +463,28 @@ class Appointment(resource_planning, base_state, Model):
             if key not in current_appt:
                 current_appt[key] = val
 
-        # Duration changes if date, service or duration is modified
-        if vals.get('duration', False): 
-            # TODO refactor to avoid repetition
-            # Validate employee work schedule
-            start_date = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S')
-            end_date = start_date + timedelta(hours=current_appt['duration'])
-            employee_available = self.check_employee_availability(cr, uid, ids,\
-                    current_appt['employee_id'], start_date, \
-                    end_date, current_appt['duration'], context)
-            if not employee_available:
-                employee_object = self.pool.get('hr.employee').\
-                        browse(cr, uid, current_appt['employee_id'],
-                               context=context)
+        # Check if employee is assigned to service.
+        if vals.get('employee_id', False):
+            employee_obj = self.pool.get('hr.employee').\
+                    browse(cr, uid, current_appt['employee_id'],
+                           context=context)
+            service_ids = []
+            for service in employee_obj.service_ids:
+                service_ids.append(service.id)
+            if current_appt['service_id'] not in service_ids:
                 raise except_orm(_('Error'), _('%s is not '
-                    'programmed to work at this time!') % (
-                    employee_object.name))
+                    'assigned to work with %s!') % (
+                    employee_obj.name,
+                    service_obj.service.name))
+
+        # Duration changes if service is modified
+        if vals.get('duration', False):
+            # Validate employee work schedule
+            employee_available = self.check_employee_availability(cr, uid, ids,
+                    current_appt['employee_id'], current_appt['start'],
+                    current_appt['duration'], context)
+            if not employee_available:
+                self._raise_unavailable(cr, uid, 'hr.employee', current_appt['employee_id'], context)
 
         # If one of the orders related fields changes
         # (client_id, start, service_id), delete order line for appt.
@@ -311,114 +496,47 @@ class Appointment(resource_planning, base_state, Model):
                 or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                    != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                 or current_appt['service_id'] != prev_appt['service_id']:
-                order_line_object = self.pool.get('pos.order.line').\
+                order_line_obj = self.pool.get('pos.order.line').\
                         search(cr, uid, [('appointment_id', '=', ids[0])],
                                context=context)
                 del_order_line = self.pool.get('pos.order.line').\
-                        unlink(cr, uid, order_line_object[0], context=context)
+                        unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
-                    raise
-
-                # TODO refactor to avoid repetition
-                # Look for an existing order for client/date
-                client_object = self.pool.get('res.partner').\
-                        browse(cr, uid, current_appt['client_id'], context=context)
-                # TODO filter by status and dont allow to create a new order if one is unpaid
-                day_start = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
-                day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-                day_end = datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
-                day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
-                order_object = self.pool.get('pos.order').\
-                        search(cr, uid, [('date_order', '>=', day_start),
-                                         ('date_order', '<=', day_end),
-                                         ('partner_id', '=', client_object.id)],
-                               context=context)
-
-                # Order creation/modification
-                if order_object:
-                    order_id = order_object[0]
-                else:  # create it
-                    order_id = self.pool.get('pos.order').create(cr, uid, {
-                        'partner_id': client_object.id,
-                        'date_order': current_appt['start'],
-                        # TODO get correct session
-                        'session_id': 1,
-                        })
-                # add service to order
-                self.pool.get('pos.order.line').create(cr, uid, {
-                    'order_id': order_id,
-                    'name': service_object.service.name,
-                    'product_id': service_object.service.id,
-                    'price_unit': vals['price'],
-                    'appointment_id': ids[0],
-                    })
-                # Si se elimina o cancela la cita
-                    # eliminar servicio de orden del cliente
-                # Luego de cada eliminacion de servicio, se valida si
-                # la orden no tiene servicios. Se elimina orden si es asi.
-
+                    raise except_orm(_('Error'), _('Error removing pos.order.line.'))
+                if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context):
+                    raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return result
 
     def create(self, cr, uid, vals, context=None):
-        service_object = self.pool.get('salon.spa.service').\
-                browse(cr, uid, vals['service_id'], context=context)
-        # store read-only field price
-        vals['price'] = service_object.service.list_price
-        id = super(Appointment, self).create(cr, uid, vals, context)
+        self._validate_past_date(vals['start'])
 
+        service_obj = self.pool.get('salon.spa.service').\
+                browse(cr, uid, vals['service_id'], context=context)
+        # store read-only fields
+        vals['price'] = service_obj.service.list_price
+        vals['duration'] = service_obj.duration
+
+        # Check if client is available for service.
+        self._check_client_available(cr, uid, 0,  # 0=ids es el id del appointment, pero este no existe aun
+                vals.get('client_id', False), vals.get('start', False),
+                vals.get('duration', False), context)
+
+        id = super(appointment, self).create(cr, uid, vals, context)
         ids = vals
 
-        # TODO refactor to avoid repetition
         # Validate employee work schedule
-        start_date = datetime.strptime(vals['start'], '%Y-%m-%d %H:%M:%S')
-        end_date = start_date + timedelta(hours=vals['duration'])
         employee_available = self.check_employee_availability(cr, uid, ids,\
-                vals['employee_id'], start_date, \
-                end_date, vals['duration'], context)
+                vals['employee_id'], vals['start'], \
+                vals['duration'], context)
         if not employee_available:
-            employee_object = self.pool.get('hr.employee').\
-                    browse(cr, uid, vals['employee_id'], context=context)
-            raise except_orm(_('Error'), _('%s is not '
-                'programmed to work at this time!') % (
-                employee_object.name))
+            self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
-        # TODO refactor to avoid repetition
-        # Order creation/modification
-        appointment_date = vals['start']
-        client_object = self.pool.get('res.partner').\
-                browse(cr, uid, vals['client_id'], context=context)
-        # TODO filter by status and dont allow to create a new order if one is unpaid
-        day_start = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
-        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = datetime.strptime(appointment_date, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
-        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
-        order_object = self.pool.get('pos.order').\
-                search(cr, uid, [('date_order', '>=', day_start),
-                                 ('date_order', '<=', day_end),
-                                 ('partner_id', '=', client_object.id)],
-                       context=context)
-        if order_object:
-            order_id = order_object[0]
-        else:  # create it
-            order_id = self.pool.get('pos.order').create(cr, uid, {
-                'partner_id': client_object.id,
-                'date_order': appointment_date,
-                # TODO get correct session
-                'session_id': 1,
-                })
-        # add service to order
-        self.pool.get('pos.order.line').create(cr, uid, {
-            'order_id': order_id,
-            'name': service_object.service.name,
-            'product_id': service_object.service.id,
-            'price_unit': vals['price'],
-            'appointment_id': id,
-            })
-
+        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context):
+            raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return id
 
 
-class Service(Model):
+class service(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.service'
@@ -445,17 +563,17 @@ class Service(Model):
 
     def onchange_service_service(self, cr, uid, ids, service, context=None):
         if service:
-            product_object = self.pool.get('product.product').\
+            product_obj = self.pool.get('product.product').\
                     browse(cr, uid, service, context=context)
             return {'value':
-                        {'name': product_object.name,
-                         'categ_id': product_object.categ_id.id,
+                        {'name': product_obj.name,
+                         'categ_id': product_obj.categ_id.id,
                              }
                    }
         return {}
 
 
-class Space(Model):
+class space(Model):
     _inherit = 'resource.resource'
 
     _name = 'salon.spa.space'
@@ -463,453 +581,3 @@ class Space(Model):
     _defaults = {
             'resource_type': 'material',
             }
-
-
-class hr_employee(osv.osv):
-    _inherit = 'hr.employee'
-    _columns = {
-            'service_ids': fields.many2many(
-                'salon.spa.service',
-                'employee_service_rel',
-                'employee_id', 'service',
-                'Servicios'),
-            'working_hours': fields.many2one(
-                'resource.calendar',
-                'Horario de Trabajo'),
-            }
-
-
-class product_product(osv.osv):
-    _inherit = 'product.product'
-    _columns = {
-            'product_unit_equivalent': fields.float(
-                'Equivalencia de Unidad',
-                help="El equivalente a 1 unidad para el producto. Solo aplica\
-                      cuando la Unidad de Medida es distinta de 'Unidad(es)'."
-                ),
-            }
-
-
-class product_supplierinfo(osv.osv):
-    _inherit = 'product.supplierinfo'
-    _columns = {
-            'supplier_unit_equivalent': fields.float(
-                'Equivalencia de Unidad',
-                help="El equivalente a 1 unidad en las ordenes para el\
-                      proveedor. Ejemplo: El proveedor suple los productos\
-                      en cajas de 24 unidades, este campo debe tener el valor\
-                      24 ya que al pedir 1 caja (unidad del proveedor), se\
-                      obtienen los productos deseados (24 unidades). El\
-                      equivalente a 1 unidad cuando la unidad de medida del\
-                      productos es diferente de 'Unidad(es)', lo toma del\
-                      campo product_unit_equivalent."
-                      ),
-            'supplier_unit_equivalent_name': fields.char(
-                'Nombre de Equivalencia',
-                size=128,
-                help="Unidad, Caja, Bote, etc."),
-            }
-
-
-class pos_order_line(osv.osv):
-    _inherit = 'pos.order.line'
-    _columns = {
-            'appointment_id': fields.many2one(
-                'salon.spa.appointment', 'Appointment'),
-            # TODO this is needed only if you can cancel pos orders.
-            # Not implemented yet.
-            'previous_appointment_id': fields.many2one(
-                'salon.spa.appointment', 'Appointment'),
-            }
-
-
-class res_partner(osv.osv):
-    _inherit = 'res.partner'
-    _columns = {
-            'referrer_id': fields.many2one(
-                'res.partner', 'Refered by',
-                help='Another client that refered this client.'),
-            'reference_used': fields.boolean('Rerefence Used', readonly=True),
-            }
-
-    _defaults = {
-        'reference_used': False,
-        }
-
-
-# TODO product_bundle integration to pos.order
-# This only works for sale.order
-class pos_order(osv.osv):
-    _inherit = "pos.order"
-    
-    def _prepare_order_picking(self, cr, uid, order, context=None):
-        pick_name = self.pool.get('ir.sequence').get(cr, uid, 'stock.picking.out')
-        return {
-            'name': pick_name,
-            'origin': order.name,
-            'date': order.date_order,
-            'type': 'out',
-            'state': 'auto',
-            'move_type': order.picking_policy,
-            'sale_id': order.id,
-            'partner_id': order.partner_shipping_id.id,
-            'note': order.note,
-            'invoice_state': (order.order_policy=='picking' and '2binvoiced') or 'none',
-            'company_id': order.company_id.id,
-        }
-    
-    def _create_pickings_and_procurements(self, cr, uid, order, order_lines, picking_id=False, context=None):
-        """Create the required procurements to supply sales order lines, also connecting
-        the procurements to appropriate stock moves in order to bring the goods to the
-        sales order's requested location.
-
-        If ``picking_id`` is provided, the stock moves will be added to it, otherwise
-        a standard outgoing picking will be created to wrap the stock moves, as returned
-        by :meth:`~._prepare_order_picking`.
-
-        Modules that wish to customize the procurements or partition the stock moves over
-        multiple stock pickings may override this method and call ``super()`` with
-        different subsets of ``order_lines`` and/or preset ``picking_id`` values.
-
-        :param browse_record order: sales order to which the order lines belong
-        :param list(browse_record) order_lines: sales order line records to procure
-        :param int picking_id: optional ID of a stock picking to which the created stock moves
-                               will be added. A new picking will be created if ommitted.
-        :return: True
-        """
-        move_obj = self.pool.get('stock.move')
-        picking_obj = self.pool.get('stock.picking')
-        procurement_obj = self.pool.get('procurement.order')
-        proc_ids = []
-        
-        location_id = order.shop_id.warehouse_id.lot_stock_id.id
-        output_id = order.shop_id.warehouse_id.lot_output_id.id
-
-        for line in order_lines:
-            if line.state == 'done':
-                continue
-
-            date_planned = self._get_date_planned(cr, uid, order, line, order.date_order, context=context)
-            
-            fake_line_ids = []
-            is_bundle = False
-            
-            if line.product_id:
-                if line.product_id.supply_method == 'bundle':
-                    fake_line_ids = filter(None, map(lambda x:x, line.product_id.item_ids))
-                    is_bundle = True
-                else:
-                    fake_line_ids.append(line)
-                
-                for fake_line in fake_line_ids:
-                    line_vals = {}
-                    
-                    line_vals.update({
-                        'location_id': location_id,
-                        'company_id': order.company_id.id,                        
-                        #move
-                        'location_dest_id': output_id,
-                        'date': date_planned,
-                        'date_expected': date_planned,
-                        'partner_id': line.address_allotment_id.id or order.partner_shipping_id.id,
-                        'sale_line_id': line.id,
-                        'origin': order.name,
-                        'tracking_id': False,
-                        'state': 'draft',
-                    })
-                    
-                    if is_bundle:
-                        line_vals.update({
-                            'product_id': fake_line.item_id.id,
-                            'product_qty': fake_line.qty_uom,
-                            'product_uom': fake_line.uom_id.id,
-                            'product_uos_qty': fake_line.qty_uom,
-                            'product_uos': fake_line.uom_id.id,
-                            'procure_method': fake_line.item_id.procure_method,
-                            'price_unit': fake_line.item_id.standard_price or 0.0,
-                            'name': fake_line.item_id.name,
-                            'note': fake_line.item_id.name + ' (' + line.name + ')',
-                        })
-                        product_id = fake_line.item_id
-                    else:
-                        line_vals.update({
-                            'name': line.name,
-                            'note': line.name,
-                            'product_id': line.product_id.id,
-                            'product_qty': line.product_uom_qty,
-                            'product_uom': line.product_uom.id,
-                            'product_uos_qty': (line.product_uos and line.product_uos_qty) or line.product_uom_qty,
-                            'product_uos': (line.product_uos and line.product_uos.id) or line.product_uom.id,
-                            'procure_method': line.type,
-                            'product_packaging': line.product_packaging,
-                            'price_unit': line.product_id.standard_price or 0.0,
-                        })
-                        product_id = line.product_id
-                    
-                    
-                    if product_id.type in ('product', 'consu'):
-                        if not picking_id:
-                            picking_id = picking_obj.create(cr, uid, self._prepare_order_picking(cr, uid, order, context=context))
-                        line_vals.update({'picking_id': picking_id,})
-                        move_id = move_obj.create(cr, uid, line_vals)
-                    else:
-                        # a service has no stock move
-                        move_id = False
-                    
-                    del line_vals['location_dest_id']
-                    del line_vals['date']
-                    del line_vals['date_expected']
-                    del line_vals['picking_id']
-                    del line_vals['partner_id']
-                    del line_vals['sale_line_id']
-                    del line_vals['tracking_id']
-                    del line_vals['state']
-                    
-                    line_vals.update({
-                        'move_id': move_id,
-                        'date_planned': date_planned,
-                    })
-                    
-                    proc_id = procurement_obj.create(cr, uid, line_vals)
-                    proc_ids.append(proc_id)
-                    line.write({'procurement_id': proc_id})
-                    self.ship_recreate(cr, uid, order, line, move_id, proc_id)
-
-        wf_service = netsvc.LocalService("workflow")
-        if picking_id:
-            wf_service.trg_validate(uid, 'stock.picking', picking_id, 'button_confirm', cr)
-        for proc_id in proc_ids:
-            wf_service.trg_validate(uid, 'procurement.order', proc_id, 'button_confirm', cr)
-
-        val = {}
-        if order.state == 'shipping_except':
-            val['state'] = 'progress'
-            val['shipped'] = False
-
-            if (order.order_policy == 'manual'):
-                for line in order.order_line:
-                    if (not line.invoiced) and (line.state not in ('cancel', 'draft')):
-                        val['state'] = 'manual'
-                        break
-        order.write(val)
-        return True
-    
-    
-    def action_ship_create(self, cr, uid, ids, context=None):
-        for order in self.browse(cr, uid, ids, context=context):
-            self._create_pickings_and_procurements(cr, uid, order, order.order_line, None, context=context)
-        return True
-    
-
-
-# Since invoicing is handled by POS instead of sales,
-# this modifications are not needed but can be helpful.
-#class sale_order(osv.osv):
-#    _inherit = 'sale.order'
-#    _order = "date_order desc, partner_id"
-#
-#    def copy(self, cr, uid, id, default=None, context=None):
-#        """
-#        Overwrite of copy to create a copy with the same date as the old one,
-#        and to assign the proper values to appointment_id in sale.order.line.
-#
-#        """
-#
-#        prev_order_object = self.pool.get('sale.order').browse(cr, uid, id, context=context)
-#        ret = super(sale_order, self).copy(cr, uid, id, default, context=context)
-#        self.write(cr, uid, ret, {'date_order': prev_order_object.date_order}, context=context)
-#        new_order_object = self.pool.get('sale.order').browse(cr, uid, ret, context=context)
-#        order_line_object = self.pool.get('sale.order.line')
-#        order_line_object.write(cr, uid, [l.id for l in  new_order_object.order_line],
-#                {'appointment_id': l.previous_appointment_id.id,
-#                 'previous_appointment_id': None,
-#                 })
-#        return ret
-#
-#    def action_cancel(self, cr, uid, ids, context=None):
-#        """
-#        Overwrite of action_cancel, just to update
-#        sale_order_line in appointment_id and  previous_appointment_id
-#
-#        """
-#
-#        wf_service = netsvc.LocalService("workflow")
-#        if context is None:
-#            context = {}
-#        sale_order_line_obj = self.pool.get('sale.order.line')
-#        for sale in self.browse(cr, uid, ids, context=context):
-#            for inv in sale.invoice_ids:
-#                if inv.state not in ('draft', 'cancel'):
-#                    raise osv.except_osv(
-#                        _('Cannot cancel this sales order!'),
-#                        _('First cancel all invoices attached to this sales order.'))
-#            for r in self.read(cr, uid, ids, ['invoice_ids']):
-#                for inv in r['invoice_ids']:
-#                    wf_service.trg_validate(uid, 'account.invoice', inv, 'invoice_cancel', cr)
-#            sale_order_line_obj.write(cr, uid, [l.id for l in  sale.order_line],
-#                    {'state': 'cancel',
-#                     'appointment_id': None,
-#                     'previous_appointment_id': l.appointment_id.id,
-#                     })
-#        self.write(cr, uid, ids, {'state': 'cancel'})
-#        return True
-#
-#    def manual_invoice(self, cr, uid, ids, context=None):
-#        """
-#        Overwrite of manual_invoice to create a validated and paid invoice.
-#        (Instead of a draft invoice)
-#
-#        Original documentation:
-#        create invoices for the given sales orders (ids), and open the form
-#        view of one of the newly created invoices
-#
-#        """
-#
-#        mod_obj = self.pool.get('ir.model.data')
-#        wf_service = netsvc.LocalService("workflow")
-#
-#        # create invoices through the sales orders' workflow
-#        inv_ids0 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
-#        for order_id in ids:
-#            wf_service.trg_validate(uid, 'sale.order', order_id, 'manual_invoice', cr)
-#        inv_ids1 = set(inv.id for sale in self.browse(cr, uid, ids, context) for inv in sale.invoice_ids)
-#        # determine newly created invoices
-#        new_inv_ids = list(inv_ids1 - inv_ids0)
-#
-#        for inv_id in new_inv_ids: 
-#            if context.get('auto_pay', False):
-#                # Validates Invoice
-#                wf_service.trg_validate(uid, 'account.invoice', inv_id, 'invoice_open', cr)
-#
-#                # Pay Invoice
-#                invoice_object = self.pool.get('account.invoice').\
-#                        browse(cr, uid, inv_id, context=context)
-#                move_line_object = self.pool.get('account.move.line').\
-#                        search(cr, uid, [('move_id', '=', invoice_object.move_id.id), ('debit', '>', 0)], context=context)
-#                voucher_id = self.pool.get('account.voucher').create(cr, uid, {
-#                    'partner_id': invoice_object.partner_id.id,
-#                    # TODO Pagos Parciales
-#                    'amount': invoice_object.amount_total,
-#                    # TODO Multiples pagos
-#                    'journal_id': context.get('journal_id', False),
-#                    'account_id': invoice_object.account_id.id,
-#                    'type': 'receipt',
-#                    })
-#                for move_line in move_line_object:
-#                    self.pool.get('account.voucher.line').create(cr, uid, {
-#                        'voucher_id': voucher_id,
-#                        'name': invoice_object.number,
-#                        'partner_id': invoice_object.partner_id.id,
-#                        'amount': invoice_object.amount_total,
-#                        'account_id': invoice_object.account_id.id,
-#                        'move_line_id': move_line,
-#                        'type': 'cr',
-#                        })
-#                wf_service.trg_validate(uid, 'account.voucher', voucher_id, 'proforma_voucher', cr)
-#        res = mod_obj.get_object_reference(cr, uid, 'account', 'invoice_form')
-#        res_id = res and res[1] or False,
-#
-#        return {
-#            'name': _('Customer Invoices'),
-#            'view_type': 'form',
-#            'view_mode': 'form',
-#            'view_id': [res_id],
-#            'res_model': 'account.invoice',
-#            'context': "{'type':'out_invoice'}",
-#            'type': 'ir.actions.act_window',
-#            'nodestroy': True,
-#            'target': 'current',
-#            'res_id': new_inv_ids and new_inv_ids[0] or False,
-#        }
-
-
-# Since invoicing is handled by POS instead of sales,
-# this modifications are not needed but can be helpful.
-#class sale_advance_payment_inv(osv.osv_memory):
-#    _inherit = 'sale.advance.payment.inv'
-#
-#    # TODO This should be done in the context of the action that calls
-#    # sale_make_invoice_advance_view or http://forum.openerp.com/forum/topic28369.html
-#    def _payment_total(self, cr, uid, ids, context=None):
-#        """
-#        Shows the order/invoice total.
-#
-#        """
-#
-#        cur_obj = self.pool.get('res.currency')
-#        res = {}
-#        for order in self.browse(cr, uid, ids, context=context):
-#            res[order.id] = {
-#                'amount_untaxed': 0.0,
-#                'amount_tax': 0.0,
-#                'amount_total': 0.0,
-#            }   
-#            val = val1 = 0.0
-#            cur = order.pricelist_id.currency_id
-#            for line in order.order_line:
-#                val1 += line.price_subtotal
-#                val += self._amount_line_tax(cr, uid, line, context=context)
-#            res[order.id]['amount_tax'] = cur_obj.round(cr, uid, cur, val)
-#            res[order.id]['amount_untaxed'] = cur_obj.round(cr, uid, cur, val1)
-#            res[order.id]['amount_total'] = res[order.id]['amount_untaxed'] + res[order.id]['amount_tax']
-#        return res[order.id]['amount_total']
-#    
-#    _columns = {
-#            'advance_payment_method':fields.selection(
-#                [('auto_pay', 'Invoice the whole sale plus Payment'),
-#                 ('all', 'Invoice the whole sales order'),
-#                 ('percentage','Percentage'),
-#                 ('fixed','Fixed price (deposit)'),
-#                 ('lines', 'Some order lines')
-#                 ],
-#                'What do you want to invoice?', required=True,
-#                help="""Use All to create the final invoice.
-#                    Use Percentage to invoice a percentage of the total amount.
-#                    Use Fixed Price to invoice a specific amound in advance.
-#                    Use Some Order Lines to invoice a selection of the sales order lines."""),
-#            'journal_id':fields.many2one('account.journal', 'Journal', help="Payment method for the Invoce."),
-#            'payment_amount': fields.float(string='Payment Amount', readonly=True,  help="Total amount for the order/invoice to be paid."),
-#            }
-#    
-#    _defaults = {
-#        'advance_payment_method': 'auto_pay',
-#        }
-#
-#    def create_invoices(self, cr, uid, ids, context=None):
-#        """
-#        Overwrite of method to include 'auto_pay' in same
-#        validation as 'all'.
-#
-#        Original documentation:
-#        create invoices for the active sales orders
-#        
-#        """
-#
-#        sale_obj = self.pool.get('sale.order')
-#        act_window = self.pool.get('ir.actions.act_window')
-#        wizard = self.browse(cr, uid, ids[0], context)
-#        sale_ids = context.get('active_ids', [])
-#        if wizard.advance_payment_method in ['all', 'auto_pay']:
-#            # create the final invoices of the active sales orders
-#            res = sale_obj.manual_invoice(cr, uid, sale_ids, context)
-#            if context.get('open_invoices', False):
-#                return res
-#            return {'type': 'ir.actions.act_window_close'}
-#
-#        if wizard.advance_payment_method == 'lines':
-#            # open the list view of sales order lines to invoice
-#            res = act_window.for_xml_id(cr, uid, 'sale', 'action_order_line_tree2', context)
-#            res['context'] = {
-#                'search_default_uninvoiced': 1,
-#                'search_default_order_id': sale_ids and sale_ids[0] or False,
-#            }
-#            return res
-#        assert wizard.advance_payment_method in ('fixed', 'percentage')
-#
-#        inv_ids = []
-#        for sale_id, inv_values in self._prepare_advance_invoice_vals(cr, uid, ids, context=context):
-#            inv_ids.append(self._create_invoices(cr, uid, inv_values, sale_id, context=context))
-#
-#        if context.get('open_invoices', False):
-#            return self.open_invoices( cr, uid, ids, inv_ids, context=context)
-#        return {'type': 'ir.actions.act_window_close'}

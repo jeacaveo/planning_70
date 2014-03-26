@@ -18,42 +18,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-{
-    "name" : "Salon and Spa",
-    "version" : "0.4",
-    "author" : "Ventura Systems",
-    "licence": "AGPL v3",
-    "complexity": "normal",
-    "description": """
-    Required:
-    Change addons/product/product_data.xml:
-        Replace line 3 <data noupdate="1"> with <data>
-    """,
-    "category" : "",
-    "depends" : [
-        'hr',
-        'point_of_sale',
-        'resource_planning',
-        'product_bundle',
-    ],
-    "data" : [
-        'salon_spa_view.xml',
-        'hr_employee/hr_employee_view.xml',
-        'product/product_view.xml',
-        'res_partner/res_partner_view.xml',
-        'pos_order/pos_order_view.xml',
-    ],
-    "js": [
-        'static/src/js/salon_spa.js',
-    ],
-    "css": [
-    ],
-    'qweb' : [
-        'static/src/xml/*.xml',
-    ],
-    "auto_install": False,
-    "installable": True,
-    "external_dependencies" : {
-        'python' : [],
-    },
-}
+import pos_order

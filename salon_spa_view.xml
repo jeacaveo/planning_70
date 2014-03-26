@@ -1,164 +1,5 @@
 <openerp>
     <data>
-        <!-- Employees form view -->
-        <record id="salon_spa_employee_services_view_form" model="ir.ui.view">
-            <field name="name">salon.spa.employee.services.view.form</field>
-            <field name="model">hr.employee</field>
-            <field name="inherit_id" ref="hr.view_employee_form"/>
-            <field name="arch" type="xml">
-                <field name='active' position='after'>
-                    <field name="working_hours" />
-                </field>
-                <notebook position="inside">
-                    <page string="Servicios">
-                        <field name="service_ids" colspan="4" nolabel="1"/>
-                    </page>
-                </notebook>
-            </field>
-        </record>
-        <!-- Product normal form view -->
-        <record id="salon_spa_product_normal_form_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.normal.form.view</field>
-            <field name="model">product.product</field>
-            <field name="inherit_id" ref="product.product_normal_form_view"/>
-            <field name="arch" type="xml">
-                <field name="list_price" position="after">
-                    <field name="product_unit_equivalent" />
-                </field>
-            </field>
-        </record>
-        <!-- Supplier Product form view -->
-        <record id="salon_spa_product_supplierinfo_form_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.supplierinfo.form.view</field>
-            <field name="model">product.supplierinfo</field>
-            <field name="inherit_id" ref="product.product_supplierinfo_form_view"/>
-            <field name="arch" type="xml">
-                <field name="delay" position="after">
-                    <field name="supplier_unit_equivalent_name" />
-                    <field name="supplier_unit_equivalent" />
-                </field>
-            </field>
-        </record>
-        <!-- Supplier Product tree view 
-        <record id="salon_spa_product_supplierinfo_tree_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.supplierinfo.tree.view</field>
-            <field name="model">product.supplierinfo</field>
-            <field name="inherit_id" ref="product.product_supplierinfo_tree_view"/>
-            <field name="arch" type="xml">
-                <field name="min_qty" position="after">
-                    <field name="supplier_unit_equivalent_name" />
-                    <field name="supplier_unit_equivalent" />
-                </field>
-            </field>
-        </record> -->
-        <!-- Supplier Product tree view -->
-        <record id="salon_spa_product_product_tree_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.product.tree.view</field>
-            <field name="model">product.product</field>
-            <field name="type">form</field>
-            <field name="inherit_id" ref="product.product_product_tree_view"/>
-            <field name="arch" type="xml">
-                <field name="default_code" position="after">
-                    <field name="categ_id" />
-                </field>
-            </field>
-        </record>
-        <!-- POS Order tree view -->
-        <record id="salon_spa_point_of_sale_view_pos_order_tree_view" model="ir.ui.view">
-            <field name="name">salon.spa.point_of_sale.view.pos.order.tree</field>
-            <field name="model">pos.order</field>
-            <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
-            <field name="arch" type="xml">
-                <field name="name" position="replace">
-                </field>
-                <field name="pos_reference" position="replace">
-                </field>
-                <field name="user_id" position="replace">
-                </field>
-                <field name="session_id" position="replace">
-                </field>
-                <field name="amount_total" position="replace">
-                </field>
-                <field name="state" position="replace">
-                </field>
-                <field name="invoice_id" position="replace">
-                </field>
-                <field name="date_order" position="after">
-                    <field name="user_id" />
-                    <field name="name" />
-                    <field name="pos_reference" />
-                    <field name="invoice_id" />
-                    <field name="session_id" />
-                    <field name="state" />
-                    <field name="amount_total" sum="Amount total"/>
-                </field>
-            </field>
-        </record>
-        <!-- POS Order search view -->
-        <record id="salon_spa_point_of_sale_view_pos_order_filter" model="ir.ui.view">
-            <field name="name">salon.spa.point_of_sale.view.pos.order.filter</field>
-            <field name="model">pos.order</field>
-            <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
-            <field name="arch" type="xml">
-                <field name="name" position="before">
-                    <field name="partner_id" />
-                </field>
-                <field name="name" position="replace">
-                </field>
-            </field>
-        </record>
-        <!-- Partner form view -->
-        <record id="salon_spa_view_partner_property_form" model="ir.ui.view">
-            <field name="name">salon.spa.res.partner.product.property.form.inherit</field>
-            <field name="model">res.partner</field>
-            <field name="inherit_id" ref="base.view_partner_form"/>
-            <field name="arch" type="xml">
-                <field name="date" position="after">
-                    <field name="referrer_id" domain="[('id','!=',id)]" />
-                    <field name="reference_used" />
-                </field>
-            </field>    
-        </record>       
-        <!-- Handling invoicing in pos.order, this is not needed
-        <!- Sale Advanced Payment Invoice view ->
-        <record id="salon_spa_view_pos_advance_payment_inv" model="ir.ui.view">
-            <field name="name">salon.spa.view.pos.advance.payment.inv</field>
-            <field name="model">pos.advance.payment.inv</field>
-            <field name="inherit_id" ref="pos.view_pos_advance_payment_inv"/>
-            <field name="arch" type="xml">
-                <field name="advance_payment_method" position="after">
-                    <field name="journal_id" class="oe_inline" domain="[('type','in',['cash','bank'])]"
-                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')],
-                                'required': [('advance_payment_method', '=', 'auto_pay')]}" />
-                    <field name="payment_amount"
-                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}" />
-                </field>
-
-                <!- Hide standard buttons and show new Invoice and Pay button ->
-                <button name="create_invoices" position="replace">
-                </button>
-                <button name="create_invoices" position="replace">
-                </button>
-                <button name="create_invoices" position="before">
-                    <button name="create_invoices" string="Create and View Invoice" type="object"
-                        context="{'open_invoices': True}" class="oe_highlight"
-                        attrs="{'invisible': [('advance_payment_method', 'in', ['lines', 'auto_pay'])]}"/>
-                </button>
-                <button name="create_invoices" position="before">
-                    <button name="create_invoices" string="Create Invoice" type="object" class="oe_highlight"
-                        attrs="{'invisible': [('advance_payment_method', 'in', ['lines', 'auto_pay'])]}"/>
-                </button>
-                <button name="create_invoices" position="before">
-                    <!- Auto Pay invoices once generated if payment_amount is given TODO ->
-                    <button name="create_invoices" string="Invoice and Pay" type="object" class="oe_highlight"
-                        context="{'auto_pay': True, 'journal_id': journal_id, 'payment_amount': payment_amount}"
-                        attrs="{'invisible': [('advance_payment_method', '!=', 'auto_pay')]}"/>
-                </button>
-            </field>
-        </record>
-        -->
-
-
         <!-- Appointment -->
         <!-- Appointment calendar view -->
         <record id="salon_spa_appointment_calendar" model="ir.ui.view">
@@ -170,6 +11,8 @@
                     <field name="client_id" />
                     <field name="service_id" />
                     <field name="space_id" />
+                    <!-- TODO fix price not showing -->
+                    <field name="price" />
                 </calendar>
             </field>
         </record>
@@ -181,6 +24,8 @@
             <field name="arch" type="xml">
                 <form string="Citas" version="7.0">
                     <header>
+                        <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
@@ -189,10 +34,10 @@
                             <field name="client_id" />
                             <field name="start" on_change="onchange_appointment_start(employee_id, start, duration, context)" />
                             <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, context)" />
-                            <field name="duration" widget="float_time" />
+                            <field name="duration" widget="float_time" readonly="1" />
                             <field name="employee_id" />
-                            <field name="space_id" />
                             <field name="price" readonly="1" />
+                            <field name="space_id" />
                             <field name="category_id" invisible="True" />
                         </group>
                         <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
@@ -215,6 +60,7 @@
                     <field name="employee_id" />
                     <field name="service_id" />
                     <field name="space_id" />
+                    <field name="price" />
                     <field name="state" />
                     <button name="case_pending" string="En Espera" type="object"
                             states="open" icon="gtk-undo"/>
