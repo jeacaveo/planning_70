@@ -72,7 +72,75 @@ class appointment(resource_planning, base_state, Model):
             'active': fields.boolean('Activo', required=False),
             }
 
+    def _last_appointment_client(self, cr, uid, context=None):
+        """
+        Search for the last appointment created for today and return
+        it's client id.
+
+        """
+
+        today = datetime.strftime(datetime.today(), "%Y-%m-%d %H:%M:%S")
+        day_start, day_end = self._day_start_end_time(today)
+        appt_id = self.search(cr, uid,
+                    [('start', '>=', day_start),
+                     ('start', '<=', day_end)],
+                order='create_date desc', context=context)
+        if appt_id:
+            appt_obj = self.browse(cr, uid, appt_id[0], context=context)
+            return appt_obj.client_id.id
+
+    def _round_time(self, dt=None, round_to=60):
+       """
+       Round a datetime object to any time laps in seconds
+       dt : datetime.datetime object, default now.
+       round_to : Closest number of seconds to round to, default 1 minute.
+       Author: Thierry Husson 2012 - Use it as you want but don't blame me.
+
+       """
+
+       if dt == None : dt = datetime.now()
+       seconds = (dt - dt.min).seconds
+       # // is a floor division, not a comment on following line:
+       rounding = (seconds + round_to / 2) // round_to * round_to
+       return dt + timedelta(0, rounding - seconds, -dt.microsecond)
+
+    def _next_available_date(self, cr, uid, context=None):
+        """
+        Search the closest available datetime for an appointment
+        (duration not considered)
+
+        """
+
+        # Round to next five minute interval
+        date_start = self._round_time(round_to=60 * 5) + timedelta(minutes=5)
+        # TODO use correct timezone to compare with resource.calendar.attendance
+        # attd = attendance
+        calendar_id = self.pool.get('resource.calendar').\
+                search(cr, uid, [('name', '=', 'Horario')], context=context)
+        attd_id = self.pool.get('resource.calendar.attendance').\
+                search(cr, uid,
+                       [('dayofweek', '=', date_start.weekday()),
+                        ('calendar_id', '=', calendar_id)],
+                       context=context)
+        attd_obj = self.pool.get('resource.calendar.attendance').\
+                browse(cr, uid, attd_id[0], context=context)
+        date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
+        minutes_till_closing = (date_closing - date_start).seconds / 60
+        for minutes in range(5, minutes_till_closing, 5):
+            if date_start.hour >= attd_obj.hour_from \
+                and date_start.hour < attd_obj.hour_to:
+                date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
+                if not self.search(cr, uid,
+                    [('start', '>=', self._datetime_to_string(date_start)),
+                     ('start', '<=', self._datetime_to_string(date_end))],
+                    context=context):
+                    return self._datetime_to_string(date_start)
+            date_start = date_end + timedelta(minutes=minutes)
+        return None
+
     _defaults = {
+            'client_id': _last_appointment_client,
+            'start': _next_available_date,
             'state': 'draft',
             'active': True
         }
@@ -179,6 +247,16 @@ class appointment(resource_planning, base_state, Model):
         """
 
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+
+    def _datetime_to_string(self, date):
+        """
+        Get a datetime object.
+        Return a string date in 'YYYY-mm-dd HH:MM:SS' format
+        of said date.
+
+        """
+
+        return datetime.strftime(date, "%Y-%m-%d %H:%M:%S")
 
     def _day_start_end_time(self, date):
         """
