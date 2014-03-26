@@ -141,7 +141,7 @@ class appointment(resource_planning, base_state, Model):
     _defaults = {
             'client_id': _last_appointment_client,
             'start': _next_available_date,
-            'state': 'draft',
+            'state': 'pending',
             'active': True
         }
 
@@ -334,6 +334,29 @@ class appointment(resource_planning, base_state, Model):
 
         return True
 
+    def action_check_in(self, cr, uid, ids, context=None):
+        """
+        Changes the state of all appointments of the client to 'open'
+        and creates an pos.order for each one.
+
+        """
+
+        appt_obj = self.browse(cr, uid, ids[0], context=context)
+        day_start, day_end = self._day_start_end_time(appt_obj.start)
+        appt_ids = self.search(cr, uid,
+                [('start', '>=', day_start),
+                 ('start', '<=', day_end),
+                 ('client_id', '=', appt_obj.client_id.id)],
+                context=context)
+        for appt_id in appt_ids:
+            appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
+            if appt_obj.state in ['draft', 'pending']:
+                appt_obj.case_open()
+            if not self._create_update_order_client_day(cr, uid,\
+                    appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
+                raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
+        return True
+
     def action_view_pos_order(self, cr, uid, ids, context=None):
         """
         This function returns an action that displays existing orders
@@ -438,7 +461,8 @@ class appointment(resource_planning, base_state, Model):
                      'duration': appt_obj.duration,
                      'service_id': appt_obj.service_id.id,
                      }
-        self._validate_past_date(vals.get('start', False) or prev_appt['start'])
+        if vals.get('start', False):
+            self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
@@ -489,9 +513,11 @@ class appointment(resource_planning, base_state, Model):
         # If one of the orders related fields changes
         # (client_id, start, service_id), delete order line for appt.
         # Later an order is created or modificed with the new info.
-        if vals.get('client_id', False) \
-            or vals.get('start', False) \
-            or vals.get('service_id', False):
+        if appt_obj.state in ['open'] \
+            and (vals.get('client_id', False) \
+                or vals.get('start', False) \
+                or vals.get('service_id', False) \
+                ):
             if current_appt['client_id'] != prev_appt['client_id'] \
                 or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                    != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
@@ -531,8 +557,6 @@ class appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
-        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context):
-            raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return id
 
 
