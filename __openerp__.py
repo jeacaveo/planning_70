@@ -51,6 +51,7 @@
         'point_of_sale',
         'resource_planning',
         'product_bundle',
+        'marcos_ncf',
     ],
     "data" : [
         'salon_spa_view.xml',
