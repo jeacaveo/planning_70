@@ -57,7 +57,7 @@
         'hr_employee/hr_employee_view.xml',
         'product/product_view.xml',
         'res_partner/res_partner_view.xml',
-        'pos_order/pos_order_view.xml',
+        'point_of_sale/point_of_sale_view.xml',
     ],
     "js": [
         'static/src/js/salon_spa.js',
