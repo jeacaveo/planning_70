@@ -285,9 +285,13 @@ class appointment(resource_planning, base_state, Model):
             model_obj.name))
 
     def _check_client_available(self, cr, uid, ids, client_id, start_date, duration, context):
-        if not self.check_resource_availability(cr, uid, ids,
-                'client_id', client_id, start_date, duration, context):
-            self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
+        client_obj = self.pool.get('res.partner').\
+                browse(cr, uid, client_id, context=context)
+        # TODO REFACTOR Break and Lunch as hardcoded values
+        if client_obj.name not in ['Break', 'Lunch']:
+            if not self.check_resource_availability(cr, uid, ids,
+                    'client_id', client_id, start_date, duration, context):
+                self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
         return True
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
