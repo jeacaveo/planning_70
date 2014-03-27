@@ -22,17 +22,6 @@ from openerp.osv import fields, osv
 from openerp import netsvc
 
 
-class pos_order_line(osv.osv):
-    _inherit = 'pos.order.line'
-    _columns = {
-            'appointment_id': fields.many2one(
-                'salon.spa.appointment', 'Appointment'),
-            # TODO this is needed only if you can cancel pos orders.
-            'previous_appointment_id': fields.many2one(
-                'salon.spa.appointment', 'Appointment'),
-            }
-
-
 # TODO product_bundle integration to pos.order
 # Right now only works for sale.order
 class pos_order(osv.osv):
@@ -193,3 +182,14 @@ class pos_order(osv.osv):
         for order in self.browse(cr, uid, ids, context=context):
             self._create_pickings_and_procurements(cr, uid, order, order.order_line, None, context=context)
         return True
+
+
+class pos_order_line(osv.osv):
+    _inherit = 'pos.order.line'
+    _columns = {
+            'appointment_id': fields.many2one(
+                'salon.spa.appointment', 'Appointment'),
+            # TODO this is needed only if you can cancel pos orders.
+            'previous_appointment_id': fields.many2one(
+                'salon.spa.appointment', 'Appointment'),
+            }
