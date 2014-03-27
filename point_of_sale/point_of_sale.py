@@ -22,165 +22,106 @@ from openerp.osv import fields, osv
 from openerp import netsvc
 
 
-# TODO product_bundle integration to pos.order
-# Right now only works for sale.order
 class pos_order(osv.osv):
+    """
+    Integration with product_bundle. By Ventura Systems. 
+
+    """
+
     _inherit = "pos.order"
 
-    def _prepare_order_picking(self, cr, uid, order, context=None):
-        pick_name = self.pool.get('ir.sequence').get(cr, uid, 'stock.picking.out')
-        return {
-            'name': pick_name,
-            'origin': order.name,
-            'date': order.date_order,
-            'type': 'out',
-            'state': 'auto',
-            'move_type': order.picking_policy,
-            'sale_id': order.id,
-            'partner_id': order.partner_shipping_id.id,
-            'note': order.note,
-            'invoice_state': (order.order_policy == 'picking' and '2binvoiced') or 'none',
-            'company_id': order.company_id.id,
-        }
-
-    def _create_pickings_and_procurements(self, cr, uid, order, order_lines, picking_id=False, context=None):
-        """Create the required procurements to supply sales order lines, also connecting
-        the procurements to appropriate stock moves in order to bring the goods to the
-        sales order's requested location.
-
-        If ``picking_id`` is provided, the stock moves will be added to it, otherwise
-        a standard outgoing picking will be created to wrap the stock moves, as returned
-        by :meth:`~._prepare_order_picking`.
-
-        Modules that wish to customize the procurements or partition the stock moves over
-        multiple stock pickings may override this method and call ``super()`` with
-        different subsets of ``order_lines`` and/or preset ``picking_id`` values.
-
-        :param browse_record order: sales order to which the order lines belong
-        :param list(browse_record) order_lines: sales order line records to procure
-        :param int picking_id: optional ID of a stock picking to which the created stock moves
-                               will be added. A new picking will be created if ommitted.
-        :return: True
+    def create_picking(self, cr, uid, ids, context=None):
         """
-        move_obj = self.pool.get('stock.move')
+        Create a picking for each order and validate it.
+
+        """
+
+        import ipdb; ipdb.set_trace()
         picking_obj = self.pool.get('stock.picking')
-        procurement_obj = self.pool.get('procurement.order')
-        proc_ids = []
+        partner_obj = self.pool.get('res.partner')
+        move_obj = self.pool.get('stock.move')
 
-        location_id = order.shop_id.warehouse_id.lot_stock_id.id
-        output_id = order.shop_id.warehouse_id.lot_output_id.id
-
-        for line in order_lines:
-            if line.state == 'done':
+        for order in self.browse(cr, uid, ids, context=context):
+            if not order.state=='draft':
                 continue
+            if order.amount_total >= 0:
+                type = 'out'
+            else:
+                type = 'in'
 
-            date_planned = self._get_date_planned(cr, uid, order, line, order.date_order, context=context)
+            addr = order.partner_id and partner_obj.address_get(cr, uid, [order.partner_id.id], ['delivery']) or {}
+            picking_id = picking_obj.create(cr, uid, {
+                'origin': order.name,
+                'partner_id': addr.get('delivery',False),
+                'type': type,
+                'company_id': order.company_id.id,
+                'move_type': 'direct',
+                'note': order.note or "",
+                'invoice_state': 'none',
+                'auto_picking': True,
+            }, context=context)
+            self.write(cr, uid, [order.id], {'picking_id': picking_id}, context=context)
+            location_id = order.shop_id.warehouse_id.lot_stock_id.id
+            output_id = order.shop_id.warehouse_id.lot_output_id.id
 
-            fake_line_ids = []
-            is_bundle = False
+            for line in order.lines:
+                fake_line_ids = []
+                is_bundle = False
 
-            if line.product_id:
                 if line.product_id.supply_method == 'bundle':
                     fake_line_ids = filter(None, map(lambda x: x, line.product_id.item_ids))
                     is_bundle = True
                 else:
-                    fake_line_ids.append(line)
+                    if line.product_id and line.product_id.type == 'service':
+                        continue
+                    else:
+                        fake_line_ids.append(line)
 
                 for fake_line in fake_line_ids:
-                    line_vals = {}
+                    if not is_bundle:
+                        if fake_line.qty < 0:
+                            location_id, output_id = output_id, location_id
 
-                    line_vals.update({
-                        'location_id': location_id,
-                        'company_id': order.company_id.id,
-                        #move
-                        'location_dest_id': output_id,
-                        'date': date_planned,
-                        'date_expected': date_planned,
-                        'partner_id': line.address_allotment_id.id or order.partner_shipping_id.id,
-                        'sale_line_id': line.id,
-                        'origin': order.name,
-                        'tracking_id': False,
-                        'state': 'draft',
-                    })
+                        move_obj.create(cr, uid, {
+                            'name': fake_line.name,
+                            'product_uom': fake_line.product_id.uom_id.id,
+                            'product_uos': fake_line.product_id.uom_id.id,
+                            'picking_id': picking_id,
+                            'product_id': fake_line.product_id.id,
+                            'product_uos_qty': abs(fake_line.qty),
+                            'product_qty': abs(fake_line.qty),
+                            'tracking_id': False,
+                            'state': 'draft',
+                            'location_id': location_id,
+                            'location_dest_id': output_id,
+                            'prodlot_id': fake_line.prodlot_id and fake_line.prodlot_id.id or False,
+                        }, context=context)
+                        if fake_line.qty < 0:
+                            location_id, output_id = output_id, location_id
+                    else:
+                        if fake_line.qty_uom < 0:
+                            location_id, output_id = output_id, location_id
 
-                    if is_bundle:
-                        line_vals.update({
-                            'product_id': fake_line.item_id.id,
-                            'product_qty': fake_line.qty_uom,
-                            'product_uom': fake_line.uom_id.id,
-                            'product_uos_qty': fake_line.qty_uom,
-                            'product_uos': fake_line.uom_id.id,
-                            'procure_method': fake_line.item_id.procure_method,
-                            'price_unit': fake_line.item_id.standard_price or 0.0,
+                        move_obj.create(cr, uid, {
                             'name': fake_line.item_id.name,
-                            'note': fake_line.item_id.name + ' (' + line.name + ')',
-                        })
-                        product_id = fake_line.item_id
-                    else:
-                        line_vals.update({
-                            'name': line.name,
-                            'note': line.name,
-                            'product_id': line.product_id.id,
-                            'product_qty': line.product_uom_qty,
-                            'product_uom': line.product_uom.id,
-                            'product_uos_qty': (line.product_uos and line.product_uos_qty) or line.product_uom_qty,
-                            'product_uos': (line.product_uos and line.product_uos.id) or line.product_uom.id,
-                            'procure_method': line.type,
-                            'product_packaging': line.product_packaging,
-                            'price_unit': line.product_id.standard_price or 0.0,
-                        })
-                        product_id = line.product_id
+                            'product_uom': fake_line.item_id.uom_id.id,
+                            'product_uos': fake_line.item_id.uom_id.id,
+                            'picking_id': picking_id,
+                            'product_id': fake_line.item_id.id,
+                            'product_uos_qty': abs(fake_line.qty_uom),
+                            'product_qty': abs(fake_line.qty_uom),
+                            'tracking_id': False,
+                            'state': 'draft',
+                            'location_id': location_id,
+                            'location_dest_id': output_id,
+                            'prodlot_id': False,
+                        }, context=context)
+                        if fake_line.qty_uom < 0:
+                            location_id, output_id = output_id, location_id
 
-                    if product_id.type in ('product', 'consu'):
-                        if not picking_id:
-                            picking_id = picking_obj.create(cr, uid, self._prepare_order_picking(cr, uid, order, context=context))
-                        line_vals.update({'picking_id': picking_id, })
-                        move_id = move_obj.create(cr, uid, line_vals)
-                    else:
-                        # a service has no stock move
-                        move_id = False
-
-                    del line_vals['location_dest_id']
-                    del line_vals['date']
-                    del line_vals['date_expected']
-                    del line_vals['picking_id']
-                    del line_vals['partner_id']
-                    del line_vals['sale_line_id']
-                    del line_vals['tracking_id']
-                    del line_vals['state']
-
-                    line_vals.update({
-                        'move_id': move_id,
-                        'date_planned': date_planned,
-                    })
-
-                    proc_id = procurement_obj.create(cr, uid, line_vals)
-                    proc_ids.append(proc_id)
-                    line.write({'procurement_id': proc_id})
-                    self.ship_recreate(cr, uid, order, line, move_id, proc_id)
-
-        wf_service = netsvc.LocalService("workflow")
-        if picking_id:
+            wf_service = netsvc.LocalService("workflow")
             wf_service.trg_validate(uid, 'stock.picking', picking_id, 'button_confirm', cr)
-        for proc_id in proc_ids:
-            wf_service.trg_validate(uid, 'procurement.order', proc_id, 'button_confirm', cr)
-
-        val = {}
-        if order.state == 'shipping_except':
-            val['state'] = 'progress'
-            val['shipped'] = False
-
-            if (order.order_policy == 'manual'):
-                for line in order.order_line:
-                    if (not line.invoiced) and (line.state not in ('cancel', 'draft')):
-                        val['state'] = 'manual'
-                        break
-        order.write(val)
-        return True
-
-    def action_ship_create(self, cr, uid, ids, context=None):
-        for order in self.browse(cr, uid, ids, context=context):
-            self._create_pickings_and_procurements(cr, uid, order, order.order_line, None, context=context)
+            picking_obj.force_assign(cr, uid, [picking_id], context)
         return True
 
 
