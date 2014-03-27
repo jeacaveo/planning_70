@@ -28,6 +28,22 @@
     Required:
     Change addons/product/product_data.xml:
         Replace line 3 <data noupdate="1"> with <data>
+
+    For breaks configuration:
+        Create a 'Breaks' Product Category.
+        Create a 'Break' and a 'Lunch' Product.
+        Create a Service for each Product.
+        Update both Services to have 'unlimited' time_efficiency:
+            update salon_spa_service set time_efficiency = 99  where id = service_id;
+        Create a 'Free' Space.
+        Update Space to have 'unlimited' time_efficiency:
+            update salon_spa_space set time_efficiency = 99  where id = service_id;
+        Use a fictional Client for breaks.
+
+    For color configuration:
+        Change color_map dict in salon_spa/static/src/jc/salon_spa.js.
+        Key is the category_id of the appointment/service.
+
     """,
     "category" : "",
     "depends" : [
