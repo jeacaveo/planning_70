@@ -54,6 +54,8 @@
         'marcos_ncf',
     ],
     "data" : [
+        'security/salon_spa_security.xml',
+        'security/ir.model.access.csv',
         'salon_spa_view.xml',
         'hr_employee/hr_employee_view.xml',
         'product/product_view.xml',
