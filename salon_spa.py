@@ -122,20 +122,21 @@ class appointment(resource_planning, base_state, Model):
                        [('dayofweek', '=', date_start.weekday()),
                         ('calendar_id', '=', calendar_id)],
                        context=context)
-        attd_obj = self.pool.get('resource.calendar.attendance').\
-                browse(cr, uid, attd_id[0], context=context)
-        date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
-        minutes_till_closing = (date_closing - date_start).seconds / 60
-        for minutes in range(5, minutes_till_closing, 5):
-            if date_start.hour >= attd_obj.hour_from \
-                and date_start.hour < attd_obj.hour_to:
-                date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
-                if not self.search(cr, uid,
-                    [('start', '>=', self._datetime_to_string(date_start)),
-                     ('start', '<=', self._datetime_to_string(date_end))],
-                    context=context):
-                    return self._datetime_to_string(date_start)
-            date_start = date_end + timedelta(minutes=minutes)
+        if attd_id:
+            attd_obj = self.pool.get('resource.calendar.attendance').\
+                    browse(cr, uid, attd_id[0], context=context)
+            date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
+            minutes_till_closing = (date_closing - date_start).seconds / 60
+            for minutes in range(5, minutes_till_closing, 5):
+                if date_start.hour >= attd_obj.hour_from \
+                    and date_start.hour < attd_obj.hour_to:
+                    date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
+                    if not self.search(cr, uid,
+                        [('start', '>=', self._datetime_to_string(date_start)),
+                         ('start', '<=', self._datetime_to_string(date_end))],
+                        context=context):
+                        return self._datetime_to_string(date_start)
+                date_start = date_end + timedelta(minutes=minutes)
         return None
 
     _defaults = {
@@ -318,12 +319,13 @@ class appointment(resource_planning, base_state, Model):
             if order_ids:
                 order_id = order_ids[0]
             else:  # create it
+                context['empty_order'] = True
                 order_id = self.pool.get('pos.order').create(cr, uid, {
                     'partner_id': client_id,
                     'date_order': date,
                     # TODO get correct session
                     'session_id': 1,
-                    })
+                    }, context=context)
             # add service to order
             self.pool.get('pos.order.line').create(cr, uid, {
                 'order_id': order_id,
