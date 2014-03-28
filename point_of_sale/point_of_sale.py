@@ -24,7 +24,7 @@ from openerp import netsvc
 
 class pos_order(osv.osv):
     """
-    Integration with product_bundle. By Ventura Systems. 
+    Integration with product_bundle by Ventura Systems. 
 
     """
 
@@ -36,7 +36,6 @@ class pos_order(osv.osv):
 
         """
 
-        import ipdb; ipdb.set_trace()
         picking_obj = self.pool.get('stock.picking')
         partner_obj = self.pool.get('res.partner')
         move_obj = self.pool.get('stock.move')
