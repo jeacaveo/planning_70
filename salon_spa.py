@@ -324,8 +324,9 @@ class appointment(resource_planning, base_state, Model):
                 order_id = self.pool.get('pos.order').create(cr, uid, {
                     'partner_id': client_id,
                     'date_order': date,
-                    # TODO get correct session
+                    # TODO get correct session and pricelist_id
                     'session_id': 1,
+                    'pricelist_id': 1,
                     }, context=context)
             # add service to order
             self.pool.get('pos.order.line').create(cr, uid, {
