@@ -127,6 +127,7 @@ class appointment(resource_planning, base_state, Model):
                     browse(cr, uid, attd_id[0], context=context)
             date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
             minutes_till_closing = (date_closing - date_start).seconds / 60
+            date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
             for minutes in range(5, minutes_till_closing, 5):
                 if date_start.hour >= attd_obj.hour_from \
                     and date_start.hour < attd_obj.hour_to:
