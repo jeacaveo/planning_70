@@ -1,11 +1,16 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_salon_spa_appointment,access_salon_spa_appointment,model_salon_spa_appointment,group_salon_spa_user,1,1,1,1
+access_salon_spa_service_manager,access_salon_spa_service manager,model_salon_spa_service,group_salon_spa_manager,1,1,1,1
 access_salon_spa_service,access_salon_spa_service,model_salon_spa_service,group_salon_spa_user,1,0,0,0
+access_salon_spa_space_manager,access_salon_spa_space manager,model_salon_spa_space,group_salon_spa_manager,1,1,1,1
 access_salon_spa_space,access_salon_spa_space,model_salon_spa_space,group_salon_spa_user,1,0,0,0
 access_pos_order,pos.order,point_of_sale.model_pos_order,group_salon_spa_user,1,1,1,1
 access_pos_order_line,pos.order.line,point_of_sale.model_pos_order_line,group_salon_spa_user,1,1,1,1
 access_resource_calendar,resource.calendar,resource.model_resource_calendar,group_salon_spa_user,1,1,1,1
 access_resource_calendar_attendance,resource.calendar.attendance,resource.model_resource_calendar_attendance,group_salon_spa_user,1,1,1,1
+access_product_item_manager,access_product_item manager,product_bundle.model_product_item,group_salon_spa_manager,1,1,1,1
 access_product_item,access_product_item,product_bundle.model_product_item,group_salon_spa_user,1,0,0,0
+access_product_category_manager,product.category manager,product.model_product_category,group_salon_spa_manager,1,1,1,1
 access_product_category,product.category,product.model_product_category,group_salon_spa_user,1,0,0,0
+access_product_uom_categ_manager,product.uom.categ manager,product.model_product_uom_categ,group_salon_spa_manager,1,1,1,1
 access_product_uom_categ,product.uom.categ,product.model_product_uom_categ,group_salon_spa_user,1,0,0,0
