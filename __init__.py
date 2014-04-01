@@ -22,4 +22,4 @@ import salon_spa
 import hr_employee
 import product
 import res_partner
-import pos_order
+import point_of_sale

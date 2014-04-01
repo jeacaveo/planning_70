@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+<data noupdate="0">
+
+    <record model="ir.module.category" id="module_category_salon_spa">
+        <field name="name">Salon Spa</field>
+        <field name="description">Salon and Spa administration module.</field>
+        <field name="sequence">200</field>
+    </record>
+
+    <record id="group_salon_spa_user" model="res.groups">
+        <field name="name">User</field>
+        <field name="category_id" ref="module_category_salon_spa"/>
+        <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_user')),
+                                         (4, ref('base.group_sale_salesman')),
+                                         (4, ref('stock.group_stock_user'))]"/>
+    </record>
+    <record id="group_salon_spa_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="category_id" ref="module_category_salon_spa"/>
+        <field name="implied_ids" eval="[(4, ref('group_salon_spa_user')),
+                                         (4, ref('point_of_sale.group_pos_manager')),
+                                         (4, ref('purchase.group_purchase_manager')),
+                                         (4, ref('stock.group_stock_manager'))]"/>
+        <field name="users" eval="[(4, ref('base.user_root'))]"/>
+    </record>
+
+</data>
+</openerp>

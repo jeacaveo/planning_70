@@ -26,6 +26,8 @@
                     <header>
                         <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight"
                             attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
+                        <button name="action_check_in" string="Check In" type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', 'not in', ['draft', 'pending'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
@@ -63,7 +65,7 @@
                     <field name="price" />
                     <field name="state" />
                     <button name="case_pending" string="En Espera" type="object"
-                            states="open" icon="gtk-undo"/>
+                            states="draft,open" icon="gtk-undo"/>
                     <button name="case_open" string="Confirmar" type="object"
                             states="pending" icon="gtk-jump-to"/>
                     <button name="case_close" string="Concluida" type="object"

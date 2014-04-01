@@ -4,10 +4,13 @@ openerp.salon_spa = function(instance){
     module.CalendarView.include({
         init: function(parent, dataset, view_id, options)
         {
+            this._super(parent, dataset, view_id, options);
             this.unit_resource_field = '';
             this.resource_fields={};
             this.first_load = true;  // TODO undo force
-            return this._super(parent, dataset, view_id, options);
+            // key = salon.spa.appointment category_id
+            this.color_map = {'1': '#C0C0C0'}; 
+            return this
         },
         events_loaded: function(events, fn_filter, no_filter_reload) {
             // this._super();  // calling the original Foo.bar() method

@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Salon and Spa",
-    "version" : "0.4",
+    "version" : "0.4.1",
     "author" : "Ventura Systems",
     "licence": "AGPL v3",
     "complexity": "normal",
@@ -28,6 +28,22 @@
     Required:
     Change addons/product/product_data.xml:
         Replace line 3 <data noupdate="1"> with <data>
+
+    For breaks configuration:
+        Create a 'Breaks' Product Category.
+        Create a 'Break' and a 'Lunch' Product.
+        Create a Service for each Product.
+        Update both Services to have 'unlimited' time_efficiency:
+            update salon_spa_service set time_efficiency = 99  where id = service_id;
+        Create a 'Free' Space.
+        Update Space to have 'unlimited' time_efficiency:
+            update salon_spa_space set time_efficiency = 99  where id = service_id;
+        Use a fictional Client for breaks.
+
+    For color configuration:
+        Change color_map dict in salon_spa/static/src/jc/salon_spa.js.
+        Key is the category_id of the appointment/service.
+
     """,
     "category" : "",
     "depends" : [
@@ -35,13 +51,16 @@
         'point_of_sale',
         'resource_planning',
         'product_bundle',
+        'marcos_ncf',
     ],
     "data" : [
+        'security/salon_spa_security.xml',
+        'security/ir.model.access.csv',
         'salon_spa_view.xml',
         'hr_employee/hr_employee_view.xml',
         'product/product_view.xml',
         'res_partner/res_partner_view.xml',
-        'pos_order/pos_order_view.xml',
+        'point_of_sale/point_of_sale_view.xml',
     ],
     "js": [
         'static/src/js/salon_spa.js',

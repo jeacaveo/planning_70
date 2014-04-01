@@ -122,26 +122,28 @@ class appointment(resource_planning, base_state, Model):
                        [('dayofweek', '=', date_start.weekday()),
                         ('calendar_id', '=', calendar_id)],
                        context=context)
-        attd_obj = self.pool.get('resource.calendar.attendance').\
-                browse(cr, uid, attd_id[0], context=context)
-        date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
-        minutes_till_closing = (date_closing - date_start).seconds / 60
-        for minutes in range(5, minutes_till_closing, 5):
-            if date_start.hour >= attd_obj.hour_from \
-                and date_start.hour < attd_obj.hour_to:
-                date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
-                if not self.search(cr, uid,
-                    [('start', '>=', self._datetime_to_string(date_start)),
-                     ('start', '<=', self._datetime_to_string(date_end))],
-                    context=context):
-                    return self._datetime_to_string(date_start)
-            date_start = date_end + timedelta(minutes=minutes)
+        if attd_id:
+            attd_obj = self.pool.get('resource.calendar.attendance').\
+                    browse(cr, uid, attd_id[0], context=context)
+            date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
+            minutes_till_closing = (date_closing - date_start).seconds / 60
+            date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
+            for minutes in range(5, minutes_till_closing, 5):
+                if date_start.hour >= attd_obj.hour_from \
+                    and date_start.hour < attd_obj.hour_to:
+                    date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
+                    if not self.search(cr, uid,
+                        [('start', '>=', self._datetime_to_string(date_start)),
+                         ('start', '<=', self._datetime_to_string(date_end))],
+                        context=context):
+                        return self._datetime_to_string(date_start)
+                date_start = date_end + timedelta(minutes=minutes)
         return None
 
     _defaults = {
             'client_id': _last_appointment_client,
             'start': _next_available_date,
-            'state': 'draft',
+            'state': 'pending',
             'active': True
         }
 
@@ -285,9 +287,13 @@ class appointment(resource_planning, base_state, Model):
             model_obj.name))
 
     def _check_client_available(self, cr, uid, ids, client_id, start_date, duration, context):
-        if not self.check_resource_availability(cr, uid, ids,
-                'client_id', client_id, start_date, duration, context):
-            self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
+        client_obj = self.pool.get('res.partner').\
+                browse(cr, uid, client_id, context=context)
+        # TODO REFACTOR Break and Lunch as hardcoded values
+        if client_obj.name not in ['Break', 'Lunch']:
+            if not self.check_resource_availability(cr, uid, ids,
+                    'client_id', client_id, start_date, duration, context):
+                self._raise_unavailable(cr, uid, 'res.partner', client_id, context)
         return True
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
@@ -314,12 +320,14 @@ class appointment(resource_planning, base_state, Model):
             if order_ids:
                 order_id = order_ids[0]
             else:  # create it
+                context['empty_order'] = True
                 order_id = self.pool.get('pos.order').create(cr, uid, {
                     'partner_id': client_id,
                     'date_order': date,
-                    # TODO get correct session
+                    # TODO get correct session and pricelist_id
                     'session_id': 1,
-                    })
+                    'pricelist_id': 1,
+                    }, context=context)
             # add service to order
             self.pool.get('pos.order.line').create(cr, uid, {
                 'order_id': order_id,
@@ -332,6 +340,29 @@ class appointment(resource_planning, base_state, Model):
         except:
             return False
 
+        return True
+
+    def action_check_in(self, cr, uid, ids, context=None):
+        """
+        Changes the state of all appointments of the client to 'open'
+        and creates an pos.order for each one.
+
+        """
+
+        appt_obj = self.browse(cr, uid, ids[0], context=context)
+        day_start, day_end = self._day_start_end_time(appt_obj.start)
+        appt_ids = self.search(cr, uid,
+                [('start', '>=', day_start),
+                 ('start', '<=', day_end),
+                 ('client_id', '=', appt_obj.client_id.id)],
+                context=context)
+        for appt_id in appt_ids:
+            appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
+            if appt_obj.state in ['draft', 'pending']:
+                appt_obj.case_open()
+            if not self._create_update_order_client_day(cr, uid,\
+                    appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
+                raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return True
 
     def action_view_pos_order(self, cr, uid, ids, context=None):
@@ -438,7 +469,8 @@ class appointment(resource_planning, base_state, Model):
                      'duration': appt_obj.duration,
                      'service_id': appt_obj.service_id.id,
                      }
-        self._validate_past_date(vals.get('start', False) or prev_appt['start'])
+        if vals.get('start', False):
+            self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
@@ -489,9 +521,11 @@ class appointment(resource_planning, base_state, Model):
         # If one of the orders related fields changes
         # (client_id, start, service_id), delete order line for appt.
         # Later an order is created or modificed with the new info.
-        if vals.get('client_id', False) \
-            or vals.get('start', False) \
-            or vals.get('service_id', False):
+        if appt_obj.state in ['open'] \
+            and (vals.get('client_id', False) \
+                or vals.get('start', False) \
+                or vals.get('service_id', False) \
+                ):
             if current_appt['client_id'] != prev_appt['client_id'] \
                 or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                    != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
@@ -531,8 +565,6 @@ class appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
-        if not self._create_update_order_client_day(cr, uid, vals['client_id'], vals['start'], id, service_obj, context):
-            raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return id
 
 
