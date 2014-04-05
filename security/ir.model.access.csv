@@ -14,3 +14,4 @@ access_salon_spa_product_category_manager,product.category salon_spa_manager,pro
 access_salon_spa_product_category,product.category salon_spa,product.model_product_category,group_salon_spa_user,1,0,0,0
 access_salon_spa_product_uom_categ_manager,product.uom.categ salon_spa_manager,product.model_product_uom_categ,group_salon_spa_manager,1,1,1,1
 access_salon_spa_product_uom_categ,product.uom.categ salon_spa,product.model_product_uom_categ,group_salon_spa_user,1,0,0,0
+access_salon_spa_pos_make_payment,pos_make_payment.user salon_spa,point_of_sale.model_pos_make_payment,group_salon_spa_user,1,1,1,1
