@@ -320,14 +320,21 @@ class appointment(resource_planning, base_state, Model):
             if order_ids:
                 order_id = order_ids[0]
             else:  # create it
-                context['empty_order'] = True
-                order_id = self.pool.get('pos.order').create(cr, uid, {
-                    'partner_id': client_id,
-                    'date_order': date,
-                    # TODO get correct session and pricelist_id
-                    'session_id': 1,
-                    'pricelist_id': 1,
-                    }, context=context)
+                session_id = self.pool.get("pos.session").search(cr, uid,
+                    [('user_id', '=', uid),
+                     ('state', '=', 'opened')],
+                    context=context)
+                if session_id:
+                    context['empty_order'] = True
+                    order_id = self.pool.get('pos.order').create(cr, uid, {
+                        'partner_id': client_id,
+                        'date_order': date,
+                        'session_id': session_id[0],
+                        # TODO get correct pricelist_id
+                        'pricelist_id': 1,
+                        }, context=context)
+                else:
+                    raise except_orm(_('Error'), _('No cashbox available.'))
             # add service to order
             self.pool.get('pos.order.line').create(cr, uid, {
                 'order_id': order_id,
