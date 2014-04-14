@@ -167,12 +167,9 @@ class appointment(resource_planning, base_state, Model):
             # Space availability validation
             space_ids = []
             for space in service_obj.space_ids:
-                if space.name == 'Libre':
-                    space_available = True
-                else:
-                    space_available = self.check_resource_availability(cr, uid, ids,\
-                                        'space_id', space.id, start_date, \
-                                        duration, context)
+                space_available = self.check_resource_availability(cr, uid, ids,\
+                                    'space_id', space.id, start_date, \
+                                    duration, context)
                 if space_available:
                     space_ids.append(space.id)
             if space_ids:
@@ -364,7 +361,6 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.search(cr, uid,
                 [('start', '>=', day_start),
                  ('start', '<=', day_end),
-                 ('state', 'in', ['draft', 'pending']),
                  ('client_id', '=', appt_obj.client_id.id)],
                 context=context)
         for appt_id in appt_ids:
@@ -480,9 +476,8 @@ class appointment(resource_planning, base_state, Model):
                      'duration': appt_obj.duration,
                      'service_id': appt_obj.service_id.id,
                      }
-        # TODO Add password validation instead of raise
-        # if vals.get('start', False):
-        #     self._validate_past_date(vals.get('start', False) or prev_appt['start'])
+        if vals.get('start', False):
+            self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
@@ -554,7 +549,7 @@ class appointment(resource_planning, base_state, Model):
         return result
 
     def create(self, cr, uid, vals, context=None):
-        # self._validate_past_date(vals['start'])
+        self._validate_past_date(vals['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals['service_id'], context=context)
