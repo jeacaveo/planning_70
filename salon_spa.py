@@ -320,14 +320,21 @@ class appointment(resource_planning, base_state, Model):
             if order_ids:
                 order_id = order_ids[0]
             else:  # create it
-                context['empty_order'] = True
-                order_id = self.pool.get('pos.order').create(cr, uid, {
-                    'partner_id': client_id,
-                    'date_order': date,
-                    # TODO get correct session and pricelist_id
-                    'session_id': 1,
-                    'pricelist_id': 1,
-                    }, context=context)
+                session_id = self.pool.get("pos.session").search(cr, uid,
+                    [('user_id', '=', uid),
+                     ('state', '=', 'opened')],
+                    context=context)
+                if session_id:
+                    context['empty_order'] = True
+                    order_id = self.pool.get('pos.order').create(cr, uid, {
+                        'partner_id': client_id,
+                        'date_order': date,
+                        'session_id': session_id[0],
+                        # TODO get correct pricelist_id
+                        'pricelist_id': 1,
+                        }, context=context)
+                else:
+                    raise except_orm(_('Error'), _('No cashbox available.'))
             # add service to order
             self.pool.get('pos.order.line').create(cr, uid, {
                 'order_id': order_id,
@@ -354,6 +361,7 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.search(cr, uid,
                 [('start', '>=', day_start),
                  ('start', '<=', day_end),
+                 ('state', 'in', ['draft', 'pending']),
                  ('client_id', '=', appt_obj.client_id.id)],
                 context=context)
         for appt_id in appt_ids:
@@ -469,8 +477,8 @@ class appointment(resource_planning, base_state, Model):
                      'duration': appt_obj.duration,
                      'service_id': appt_obj.service_id.id,
                      }
-        if vals.get('start', False):
-            self._validate_past_date(vals.get('start', False) or prev_appt['start'])
+        #if vals.get('start', False):
+        #    self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
@@ -542,7 +550,7 @@ class appointment(resource_planning, base_state, Model):
         return result
 
     def create(self, cr, uid, vals, context=None):
-        self._validate_past_date(vals['start'])
+        #self._validate_past_date(vals['start'])
 
         service_obj = self.pool.get('salon.spa.service').\
                 browse(cr, uid, vals['service_id'], context=context)
