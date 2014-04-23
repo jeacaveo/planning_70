@@ -314,38 +314,35 @@ class appointment(resource_planning, base_state, Model):
 
         """
 
-        try:
-            order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
-            # Order creation/modification
-            if order_ids:
-                order_id = order_ids[0]
-            else:  # create it
-                session_id = self.pool.get("pos.session").search(cr, uid,
-                    [('user_id', '=', uid),
-                     ('state', '=', 'opened')],
-                    context=context)
-                if session_id:
-                    context['empty_order'] = True
-                    order_id = self.pool.get('pos.order').create(cr, uid, {
-                        'partner_id': client_id,
-                        'date_order': date,
-                        'session_id': session_id[0],
-                        # TODO get correct pricelist_id
-                        'pricelist_id': 1,
-                        }, context=context)
-                else:
-                    raise except_orm(_('Error'), _('No cashbox available.'))
-            # add service to order
-            self.pool.get('pos.order.line').create(cr, uid, {
-                'order_id': order_id,
-                'name': service_obj.service.name,
-                'product_id': service_obj.service.id,
-                'price_unit': service_obj.service.list_price,
-                'appointment_id': appt_id,
-                })
-            # TODO Limpiar facturas cuando se elimina un appt o servicio
-        except:
-            return False
+        order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
+        # Order creation/modification
+        if order_ids:
+            order_id = order_ids[0]
+        else:  # create it
+            session_id = self.pool.get("pos.session").search(cr, uid,
+                [('user_id', '=', uid),
+                 ('state', '=', 'opened')],
+                context=context)
+            if session_id:
+                context['empty_order'] = True
+                order_id = self.pool.get('pos.order').create(cr, uid, {
+                    'partner_id': client_id,
+                    'date_order': date,
+                    'session_id': session_id[0],
+                    # TODO get correct pricelist_id
+                    'pricelist_id': 1,
+                    }, context=context)
+            else:
+                raise except_orm(_('Error'), _('No cashbox available.'))
+        # add service to order
+        self.pool.get('pos.order.line').create(cr, uid, {
+            'order_id': order_id,
+            'name': service_obj.service.name,
+            'product_id': service_obj.service.id,
+            'price_unit': service_obj.service.list_price,
+            'appointment_id': appt_id,
+            })
+        # TODO Limpiar facturas cuando se elimina un appt o servicio
 
         return True
 
