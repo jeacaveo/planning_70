@@ -331,6 +331,7 @@ class appointment(resource_planning, base_state, Model):
                     'session_id': session_id[0],
                     # TODO get correct pricelist_id
                     'pricelist_id': 1,
+                    'parent_return_order': '',
                     }, context=context)
             else:
                 raise except_orm(_('Error'), _('No cashbox available.'))
