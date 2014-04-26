@@ -149,7 +149,9 @@
             res_model="pos.order"
             view_type="form"
             view_mode="tree,form" />
-        <!--context="{'search_default_date_order': [date_order], 'default_date_order': date_order}" /> -->
+            <!-- context="{'default_date_order':context_today()}" />
+             TODO make this the default filter
+             date_order must be the name of a filter -->
         <act_window
             id="action_view_client"
             name="Clientes"
