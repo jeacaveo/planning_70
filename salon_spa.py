@@ -371,6 +371,10 @@ class appointment(resource_planning, base_state, Model):
                 raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return True
 
+    def action_cancel(self, cr, uid, ids, context=None):
+        self.case_cancel(cr, uid, ids)
+        return True
+
     def action_view_pos_order(self, cr, uid, ids, context=None):
         """
         This function returns an action that displays existing orders

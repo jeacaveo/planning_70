@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Salon and Spa",
-    "version" : "0.4.2",
+    "version" : "0.4.3",
     "author" : "Ventura Systems",
     "licence": "AGPL v3",
     "complexity": "normal",

@@ -28,6 +28,8 @@
                             attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
                         <button name="action_check_in" string="Check In" type="object" class="oe_highlight"
                             attrs="{'invisible': [('state', 'not in', ['draft', 'pending'])]}" />
+                        <button name="action_cancel" string="Cancel" type="object" class="oe_highlight"
+                            attrs="{'invisible': [('state', 'in', ['cancel', 'done'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
@@ -149,7 +151,9 @@
             res_model="pos.order"
             view_type="form"
             view_mode="tree,form" />
-        <!--context="{'search_default_date_order': [date_order], 'default_date_order': date_order}" /> -->
+            <!-- context="{'default_date_order':context_today()}" />
+             TODO make this the default filter
+             date_order must be the name of a filter -->
         <act_window
             id="action_view_client"
             name="Clientes"
