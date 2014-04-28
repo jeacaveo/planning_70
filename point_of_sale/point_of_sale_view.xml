@@ -20,6 +20,8 @@
                 </field>
                 <field name="invoice_id" position="replace">
                 </field>
+                <field name="pos_reference" position="replace">
+                </field>
                 <field name="date_order" position="after">
                     <field name="user_id" />
                     <field name="name" />
@@ -37,6 +39,13 @@
             <field name="model">pos.order</field>
             <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
             <field name="arch" type="xml">
+                <filter string="New" position="before">
+                    <filter string="Today" name="date_order"
+                        domain="[('date_order','&gt;=',time.strftime('%%d/%%m/%%Y')),
+                                 ('date_order','&lt;=',((context_today() + relativedelta(days=1)).strftime('%%d/%%m/%%Y')))
+                                 ]"
+                        />
+                </filter>
                 <field name="name" position="before">
                     <field name="partner_id" />
                 </field>
