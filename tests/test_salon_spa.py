@@ -12,6 +12,7 @@ class TestSalonSpa(common.TransactionCase):
 
         """
 
+        # TODO get real id sequence
         ids = self.appt_obj.search(cr, uid, [],
                 order='create_date desc', context=context)
         ids = ids[0] + 1
@@ -58,3 +59,14 @@ class TestSalonSpa(common.TransactionCase):
         cr, uid = self.cr, self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         self.assertTrue(appt.id)
+
+    def testAppointmentCancel(self):
+        """
+        Check canceling appointment changes it to proper status.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        appt.action_cancel()
+        self.assertTrue(appt.state == 'cancel')
