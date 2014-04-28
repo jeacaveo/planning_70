@@ -15,10 +15,11 @@ $ ./openerp-server -c .openerp_serverrc_marcos -d db -u module --log-level=test 
 # import test_ir_sequence
 import test_salon_spa
 
+# When updated
 fast_suite = [
-    # test_ir_sequence,
+    test_salon_spa,
 ]
 
+# When installed
 checks = [
-    test_salon_spa,
 ]
