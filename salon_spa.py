@@ -476,6 +476,11 @@ class appointment(resource_planning, base_state, Model):
         return False
 
     def unlink(self, cr, uid, ids, context=None):
+        """
+        Avoid unlinking of appointments in 'done' state.
+
+        """
+
         appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
         if appt_obj.state == 'done':
@@ -488,6 +493,7 @@ class appointment(resource_planning, base_state, Model):
         # prev_appt holds state of appt previous to save
         appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
+        # 'done' appointments mustn't be modified
         if appt_obj.state == 'done':
             raise except_orm(_('Error'), _("Appointment is done/paid, it can't be modified."))
 
