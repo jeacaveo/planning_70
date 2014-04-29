@@ -110,7 +110,6 @@ class TestSalonSpa(common.TransactionCase):
                                        service_id,
                                        context={'start_date': start})
         appt = self.appt_obj.browse(cr, uid, appt_id)
-        self.assertTrue(ex.exception.name == 'Error')
         self.assertFalse(appt)
 
     def testEmployeeAvailability(self):
@@ -133,7 +132,6 @@ class TestSalonSpa(common.TransactionCase):
         appt = self.appt_obj.browse(cr, uid, appt_id)
         with self.assertRaises(except_orm) as ex:
             appt.write({'employee_id': first_appt.employee_id.id})
-        self.assertTrue(ex.exception.name == 'Error')
         self.assertTrue(appt.employee_id.id == first_appt.employee_id.id)
 
     def testSpaceAvailability(self):
@@ -156,7 +154,6 @@ class TestSalonSpa(common.TransactionCase):
         appt = self.appt_obj.browse(cr, uid, appt_id)
         with self.assertRaises(except_orm) as ex:
             appt.write({'space_id': first_appt.space_id.id})
-        self.assertTrue(ex.exception.name == 'Error')
         self.assertTrue(appt.space_id.id == first_appt.space_id.id)
 
     def testAppointmentUnlink(self):
@@ -171,7 +168,6 @@ class TestSalonSpa(common.TransactionCase):
         
         with self.assertRaises(except_orm) as ex:
             appt.unlink()
-        self.assertTrue(ex.exception.name)
         self.assertTrue(appt.id)
 
     def testAppointmentUnlinkManager(self):
@@ -206,4 +202,9 @@ class TestSalonSpa(common.TransactionCase):
         self.assertTrue(appt.state == 'done')
         with self.assertRaises(except_orm) as ex:
             appt.write({'duration': 999})
-        self.assertTrue(ex.exception.name)
+        # Only manager users can unlink
+        import ipdb;ipdb.set_trace()
+        cr, uid = self.cr, self.uid
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        with self.assertRaises(except_orm) as ex:
+            appt.unlink()

@@ -475,6 +475,13 @@ class appointment(resource_planning, base_state, Model):
                         return True
         return False
 
+    def unlink(self, cr, uid, ids, context=None):
+        appt_obj = self.pool.get('salon.spa.appointment').\
+                browse(cr, uid, ids[0], context=context)
+        if appt_obj.state == 'done':
+            raise except_orm(_('Error'), _("Appointment is done/paid, it can't be deleted."))
+        return super(appointment, self).unlink(cr, uid, ids, context)
+
     def write(self, cr, uid, ids, vals, context=None):
         # keys in vals correspond with fields that have changed
         # Get values previous to save
