@@ -31,7 +31,7 @@ from openerp.addons.resource_planning.resource_planning import resource_planning
 class appointment(resource_planning, base_state, Model):
     _name = 'salon.spa.appointment'
 
-    _resource_fields = ['employee_id', 'space_id']
+    _resource_fields = []
 
     _date_field = 'start'
 
@@ -359,12 +359,12 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.search(cr, uid,
                 [('start', '>=', day_start),
                  ('start', '<=', day_end),
-                 ('state', 'in', ['draft', 'pending']),
+                 ('state', 'in', ['pending']),
                  ('client_id', '=', appt_obj.client_id.id)],
                 context=context)
         for appt_id in appt_ids:
             appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
-            if appt_obj.state in ['draft', 'pending']:
+            if appt_obj.state in ['pending']:
                 appt_obj.case_open()
             if not self._create_update_order_client_day(cr, uid,\
                     appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
@@ -421,6 +421,7 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
+                                 ('state', '!=', 'cancel'),
                                  ('id', '!=', ids),
                                  (resource_type, '=', resource)],
                         context=context)
@@ -505,7 +506,7 @@ class appointment(resource_planning, base_state, Model):
             if key not in current_appt:
                 current_appt[key] = val
 
-        # Check if employee is assigned to service.
+        # Check if employee is available and assigned to service.
         if vals.get('employee_id', False):
             employee_obj = self.pool.get('hr.employee').\
                     browse(cr, uid, current_appt['employee_id'],
@@ -518,9 +519,20 @@ class appointment(resource_planning, base_state, Model):
                     'assigned to work with %s!') % (
                     employee_obj.name,
                     service_obj.service.name))
+            if not self.check_resource_availability(cr, uid, ids,
+                    'employee_id', current_appt['employee_id'],
+                    current_appt['start'], current_appt['duration'], context):
+                self._raise_unavailable(cr, uid, 'hr.employee', current_appt['employee_id'], context)
+
+        # Check if space is available
+        if vals.get('space_id', False):
+            if not self.check_resource_availability(cr, uid, ids,
+                    'space_id', current_appt['space_id'],
+                    current_appt['start'], current_appt['duration'], context):
+                self._raise_unavailable(cr, uid, 'salon.spa.space', current_appt['space_id'], context)
 
         # Duration changes if service is modified
-        if vals.get('duration', False):
+        if vals.get('duration', False) or vals.get('employee_id', False):
             # Validate employee work schedule
             employee_available = self.check_employee_availability(cr, uid, ids,
                     current_appt['employee_id'], current_appt['start'],
