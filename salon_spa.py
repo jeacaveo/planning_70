@@ -143,7 +143,7 @@ class appointment(resource_planning, base_state, Model):
     _defaults = {
             'client_id': _last_appointment_client,
             'start': _next_available_date,
-            'state': 'pending',
+            'state': 'draft',
             'active': True
         }
 
@@ -575,6 +575,7 @@ class appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
+        self.case_pending(cr, uid, [id])
         return id
 
 
