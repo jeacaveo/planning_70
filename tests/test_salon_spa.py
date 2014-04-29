@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from openerp.tests import common
-from openerp.tools.translate import _
 from openerp.osv.orm import except_orm
 
 
