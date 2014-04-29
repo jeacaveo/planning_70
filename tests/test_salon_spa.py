@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.tests import common
+from openerp.tools.translate import _
+from openerp.osv.orm import except_orm
 
 
 class TestSalonSpa(common.TransactionCase):
@@ -70,3 +72,29 @@ class TestSalonSpa(common.TransactionCase):
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         appt.action_cancel()
         self.assertTrue(appt.state == 'cancel')
+
+    def testAppointmentUnlink(self):
+        """
+        Check a normal user can't unlink/delete an appointment.
+        
+        """
+
+        # TODO use receptionist user
+        cr, uid = self.cr, 5  # self.uid
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        
+        with self.assertRaises(except_orm) as ex:
+            appt.unlink()
+        exception = ex.exception
+        self.assertTrue(exception.name)
+        self.assertTrue(appt.id)
+
+    def testAppointmentUnlinkManager(self):
+        """
+        Check a manager user can unlink/delete an appointment.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        self.assertTrue(appt.unlink())
