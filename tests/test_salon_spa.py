@@ -72,6 +72,92 @@ class TestSalonSpa(common.TransactionCase):
         appt.action_cancel()
         self.assertTrue(appt.state == 'cancel')
 
+    def testAppointmentOverCanceled(self):
+        """
+        Check that you can create and appointment on top of a canceled one,
+        with the same resources.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        appt_cancel = self.appt_obj.browse(cr, uid, self.appt_id)
+        appt_cancel.action_cancel()
+        appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                   appt_cancel.client_id.id,
+                                   appt_cancel.start,
+                                   appt_cancel.service_id.id,
+                                   context={'start_date': appt_cancel.start})
+        appt = self.appt_obj.browse(cr, uid, appt_id)
+        self.assertTrue(appt.id)
+
+    def testClientAvailability(self):
+        """
+        Check that the same client can't have two appointments
+        at the same time.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        first_appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        start = '2014-04-25 16:30:00'
+        service_id =  25
+        appt_id = None
+        with self.assertRaises(except_orm) as ex:
+            appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                       first_appt.client_id.id,
+                                       start,
+                                       service_id,
+                                       context={'start_date': start})
+        appt = self.appt_obj.browse(cr, uid, appt_id)
+        self.assertTrue(ex.exception.name == 'Error')
+        self.assertFalse(appt)
+
+    def testEmployeeAvailability(self):
+        """
+        Check that the same employee can't have two appointments
+        at the same time.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        first_appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        client_id = 33
+        start = '2014-04-25 16:30:00'
+        service_id =  25
+        appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                   client_id,
+                                   start,
+                                   service_id,
+                                   context={'start_date': start})
+        appt = self.appt_obj.browse(cr, uid, appt_id)
+        with self.assertRaises(except_orm) as ex:
+            appt.write({'employee_id': first_appt.employee_id.id})
+        self.assertTrue(ex.exception.name == 'Error')
+        self.assertTrue(appt.employee_id.id == first_appt.employee_id.id)
+
+    def testSpaceAvailability(self):
+        """
+        Check that the same space can't have two appointments
+        at the same time.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        first_appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        client_id = 33
+        start = '2014-04-25 16:30:00'
+        service_id =  25
+        appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                   client_id,
+                                   start,
+                                   service_id,
+                                   context={'start_date': start})
+        appt = self.appt_obj.browse(cr, uid, appt_id)
+        with self.assertRaises(except_orm) as ex:
+            appt.write({'space_id': first_appt.space_id.id})
+        self.assertTrue(ex.exception.name == 'Error')
+        self.assertTrue(appt.space_id.id == first_appt.space_id.id)
+
     def testAppointmentUnlink(self):
         """
         Check a normal user can't unlink/delete an appointment.
@@ -84,8 +170,7 @@ class TestSalonSpa(common.TransactionCase):
         
         with self.assertRaises(except_orm) as ex:
             appt.unlink()
-        exception = ex.exception
-        self.assertTrue(exception.name)
+        self.assertTrue(ex.exception.name)
         self.assertTrue(appt.id)
 
     def testAppointmentUnlinkManager(self):
