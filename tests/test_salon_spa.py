@@ -204,3 +204,6 @@ class TestSalonSpa(common.TransactionCase):
         self.assertTrue(invoice_obj.state == 'open')
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         self.assertTrue(appt.state == 'done')
+        with self.assertRaises(except_orm) as ex:
+            appt.write({'duration': 999})
+        self.assertTrue(ex.exception.name)
