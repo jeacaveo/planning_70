@@ -202,3 +202,5 @@ class TestSalonSpa(common.TransactionCase):
         self.assertTrue(order_obj.state == 'invoiced')
         invoice_obj = order_obj.invoice_id
         self.assertTrue(invoice_obj.state == 'open')
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        self.assertTrue(appt.state == 'done')
