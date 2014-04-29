@@ -25,11 +25,11 @@
                 <form string="Citas" version="7.0">
                     <header>
                         <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
+                            attrs="{'invisible': [('state', 'in', ['draft', 'pending', 'cancel'])]}" />
                         <button name="action_check_in" string="Check In" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'not in', ['draft', 'pending'])]}" />
+                            attrs="{'invisible': [('state', 'not in', ['pending'])]}" />
                         <button name="action_cancel" string="Cancel" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'in', ['cancel', 'done'])]}" />
+                            attrs="{'invisible': [('state', 'in', ['draft', 'cancel', 'done'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
