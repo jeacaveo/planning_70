@@ -38,6 +38,7 @@ class TestSalonSpa(common.TransactionCase):
         # Modules to test
         # appt = appointment
         self.appt_obj = self.registry('salon.spa.appointment')
+        self.pos_order_obj = self.registry('pos.order')
 
         # Positive tests data
         client_id = 68
@@ -182,3 +183,22 @@ class TestSalonSpa(common.TransactionCase):
         cr, uid = self.cr, self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         self.assertTrue(appt.unlink())
+
+    def testAppointmentDone(self):
+        """
+        Pay the POS order for a checked-in appointment,
+        and validate that appointment status has changed and can't be modified.
+        
+        """
+
+        # TODO use receptionist user
+        cr, uid = self.cr, 5  # self.uid
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        appt.action_check_in()
+        self.assertTrue(appt.state == 'open')
+        order_obj = self.pos_order_obj.browse(cr, uid, appt.order_line_id.order_id.id)
+        self.assertTrue(order_obj.id)
+        order_obj.action_create_invoice()
+        self.assertTrue(order_obj.state == 'invoiced')
+        invoice_obj = order_obj.invoice_id
+        self.assertTrue(invoice_obj.state == 'open')
