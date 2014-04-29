@@ -1,5 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_salon_spa_appointment,access_salon_spa_appointment,model_salon_spa_appointment,group_salon_spa_user,1,1,1,1
+access_salon_spa_appointment,access_salon_spa_appointment,model_salon_spa_appointment,group_salon_spa_user,1,1,1,0
 access_salon_spa_service_manager,access_salon_spa_service manager,model_salon_spa_service,group_salon_spa_manager,1,1,1,1
 access_salon_spa_service,access_salon_spa_service,model_salon_spa_service,group_salon_spa_user,1,0,0,0
 access_salon_spa_space_manager,access_salon_spa_space manager,model_salon_spa_space,group_salon_spa_manager,1,1,1,1
