@@ -70,6 +70,8 @@ class appointment(resource_planning, base_state, Model):
                                              'Cancelada' no-show, etc."),
             'notes': fields.text('Notas'),
             'active': fields.boolean('Activo', required=False),
+            'order_line_id': fields.many2one(
+                'pos.order.line', 'Registro de Venta')
             }
 
     def _last_appointment_client(self, cr, uid, context=None):
@@ -314,6 +316,8 @@ class appointment(resource_planning, base_state, Model):
 
         """
 
+        if not context:
+            context = {}
         order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
         # Order creation/modification
         if order_ids:
@@ -336,13 +340,17 @@ class appointment(resource_planning, base_state, Model):
             else:
                 raise except_orm(_('Error'), _('No cashbox available.'))
         # add service to order
-        self.pool.get('pos.order.line').create(cr, uid, {
-            'order_id': order_id,
-            'name': service_obj.service.name,
-            'product_id': service_obj.service.id,
-            'price_unit': service_obj.service.list_price,
-            'appointment_id': appt_id,
-            })
+        order_line_id = self.pool.get('pos.order.line').create(cr, uid, {
+                        'order_id': order_id,
+                        'name': service_obj.service.name,
+                        'product_id': service_obj.service.id,
+                        'price_unit': service_obj.service.list_price,
+                        'appointment_id': appt_id,
+                        })
+        # Update appointment with proper order line
+        appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
+        appt_obj.write({'order_line_id': order_line_id})
+
         # TODO Limpiar facturas cuando se elimina un appt o servicio
 
         return True
@@ -364,8 +372,7 @@ class appointment(resource_planning, base_state, Model):
                 context=context)
         for appt_id in appt_ids:
             appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
-            if appt_obj.state in ['pending']:
-                appt_obj.case_open()
+            appt_obj.case_open()
             if not self._create_update_order_client_day(cr, uid,\
                     appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
                 raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
