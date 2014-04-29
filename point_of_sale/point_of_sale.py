@@ -123,6 +123,18 @@ class pos_order(osv.osv):
             picking_obj.force_assign(cr, uid, [picking_id], context)
         return True
 
+    def action_create_invoice(self, cr, uid, id, context=None):
+        if not context:
+            context = {}
+        result = super(pos_order, self).action_create_invoice(cr, uid, id, context)
+
+        order_obj = self.pool.get('pos.order').browse(cr, uid, id, context=context)[0]
+        for line in order_obj.lines:
+            if line.appointment_id:
+                appt_obj = self.pool.get('salon.spa.appointment').browse(cr, uid, [line.appointment_id.id], context=context)[0]
+                appt_obj.case_close()
+
+        return result
 
 class pos_order_line(osv.osv):
     _inherit = 'pos.order.line'
