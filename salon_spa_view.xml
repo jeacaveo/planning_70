@@ -66,6 +66,7 @@
                     <field name="space_id" />
                     <field name="price" />
                     <field name="state" />
+                    <!-- Flow is controled via form view
                     <button name="case_pending" string="En Espera" type="object"
                             states="draft,open" icon="gtk-undo"/>
                     <button name="case_open" string="Confirmar" type="object"
@@ -76,6 +77,7 @@
                             states="draft,pending,open" icon="gtk-cancel"/>
                     <button name="case_pending" string="Restaurar" type="object"
                             states="done,cancel" icon="gtk-refresh"/>
+                    -->
                 </tree>
             </field>
         </record>
