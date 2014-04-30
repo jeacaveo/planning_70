@@ -589,13 +589,6 @@ class appointment(resource_planning, base_state, Model):
         # store read-only fields
         vals['price'] = service_obj.service.list_price
         vals['duration'] = service_obj.duration
-
-        # Check if client is available for service.
-        self._check_client_available(cr, uid, 0,  # 0=ids es el id del appointment, pero este no existe aun
-                vals.get('client_id', False), vals.get('start', False),
-                vals.get('duration', False), context)
-
-        id = super(appointment, self).create(cr, uid, vals, context)
         ids = vals
 
         # Validate employee work schedule
@@ -604,6 +597,13 @@ class appointment(resource_planning, base_state, Model):
                 vals['duration'], context)
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
+
+        id = super(appointment, self).create(cr, uid, vals, context)
+
+        # Check if client is available for service.
+        self._check_client_available(cr, uid, id,
+                vals.get('client_id', False), vals.get('start', False),
+                vals.get('duration', False), context)
 
         self.case_pending(cr, uid, [id])
         return id
