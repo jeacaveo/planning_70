@@ -31,7 +31,7 @@ from openerp.addons.resource_planning.resource_planning import resource_planning
 class appointment(resource_planning, base_state, Model):
     _name = 'salon.spa.appointment'
 
-    _resource_fields = []
+    _resource_fields = ['employee_id', 'space_id']
 
     _date_field = 'start'
 
