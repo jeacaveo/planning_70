@@ -24,7 +24,6 @@ class TestSalonSpa(common.TransactionCase):
                   'duration': onchange_values['duration'],
                   'price': onchange_values['price'],
                   'space_id': onchange_values['space_id'],
-                  'category_id': onchange_values['category_id'],
                   'employee_id': onchange_values['employee_id']
                   }
         return model_obj.create(cr, uid, values)
@@ -58,7 +57,8 @@ class TestSalonSpa(common.TransactionCase):
         
         """
 
-        cr, uid = self.cr, self.uid
+        # TODO use receptionist user
+        cr, uid = self.cr, 5  # self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         self.assertTrue(appt.id)
 

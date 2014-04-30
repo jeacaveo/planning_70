@@ -47,9 +47,6 @@ class appointment(resource_planning, base_state, Model):
             'client_id': fields.many2one(
                 'res.partner', 'Cliente',
                 domain=[('supplier', '=', False)], required=True,),
-            'category_id': fields.many2one(
-                'product.category', 'Familia',
-                domain=[('parent_id', '=', 'Servicios')], required=True),
             'service_id': fields.many2one(
                 'salon.spa.service', 'Servicio', required=True),
             'space_id': fields.many2one(
@@ -201,7 +198,6 @@ class appointment(resource_planning, base_state, Model):
                     'value': {'duration': duration,
                               'price': service_obj.service.list_price,
                               'space_id': assigned_space,
-                              'category_id': service_obj.categ_id,
                               'employee_id': assigned_employee
                         },
                     'domain': {'employee_id': [('id', 'in', employee_ids)],
@@ -213,7 +209,6 @@ class appointment(resource_planning, base_state, Model):
                      'space_id': None,
                      'duration': 0,
                      'employee_id': None,
-                     'category_id': None,
                      }
                 }
 

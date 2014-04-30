@@ -42,7 +42,6 @@
                             <field name="employee_id" />
                             <field name="price" readonly="1" />
                             <field name="space_id" />
-                            <field name="category_id" invisible="True" />
                         </group>
                         <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
                         <div class="oe_chatter">
