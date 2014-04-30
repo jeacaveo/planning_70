@@ -374,6 +374,13 @@ class appointment(resource_planning, base_state, Model):
         return True
 
     def action_cancel(self, cr, uid, ids, context=None):
+        appt_obj = self.browse(cr, uid, ids[0], context=context)
+        if appt_obj.order_line_id:
+            del_order_line = self.pool.get('pos.order.line').\
+                    browse(cr, uid, appt_obj.order_line_id.id, context=context)
+            if del_order_line:
+                del_order_line.unlink()
+
         self.case_cancel(cr, uid, ids)
         return True
 

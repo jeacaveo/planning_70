@@ -38,6 +38,7 @@ class TestSalonSpa(common.TransactionCase):
         # appt = appointment
         self.appt_obj = self.registry('salon.spa.appointment')
         self.pos_order_obj = self.registry('pos.order')
+        self.pos_order_line_obj = self.registry('pos.order.line')
 
         # Positive tests data
         client_id = 68
@@ -64,14 +65,21 @@ class TestSalonSpa(common.TransactionCase):
 
     def testAppointmentCancel(self):
         """
-        Check canceling appointment changes it to proper status.
-        
+        Check canceling appointment changes it to proper status,
+        and removes pos.order.line if it exists.
+
         """
 
-        cr, uid = self.cr, self.uid
+        # TODO use receptionist user
+        cr, uid = self.cr, 5  # self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        appt.action_check_in()
         appt.action_cancel()
         self.assertTrue(appt.state == 'cancel')
+        order_line_obj = self.pos_order_line_obj.browse(cr, uid, appt.order_line_id.id)
+        self.assertFalse(order_line_obj.id)
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
+        self.assertFalse(appt.order_line_id.id)
 
     def testAppointmentOverCanceled(self):
         """
