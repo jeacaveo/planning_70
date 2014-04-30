@@ -68,14 +68,23 @@ class TestSalonSpa(common.TransactionCase):
         Check canceling appointment changes it to proper status,
         and removes pos.order.line if it exists.
 
+        Also validate that it won't allow pos.order.line unlinking,
+        if an appointment_id is present.
+
         """
 
         # TODO use receptionist user
         cr, uid = self.cr, 5  # self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         appt.action_check_in()
+        # Validate pos.order.line can't be removed if it's related to an appt.
+        order_line_obj = self.pos_order_line_obj.browse(cr, uid, appt.order_line_id.id)
+        with self.assertRaises(except_orm) as ex:
+            order_line_obj.unlink()
+        appt = self.appt_obj.browse(cr, uid, self.appt_id)
         appt.action_cancel()
         self.assertTrue(appt.state == 'cancel')
+        # Validate pos.order.line is unlinked after appt is cancelled.
         order_line_obj = self.pos_order_line_obj.browse(cr, uid, appt.order_line_id.id)
         self.assertFalse(order_line_obj.id)
         appt = self.appt_obj.browse(cr, uid, self.appt_id)

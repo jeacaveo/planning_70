@@ -20,6 +20,8 @@
 ##############################################################################
 from openerp.osv import fields, osv
 from openerp import netsvc
+from openerp.osv.orm import except_orm
+from openerp.tools.translate import _
 
 
 class pos_order(osv.osv):
@@ -145,3 +147,15 @@ class pos_order_line(osv.osv):
             'previous_appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
             }
+
+    def unlink(self, cr, uid, ids, context=None):
+        """
+        Avoid unlinking of order_lines that have an appointment assigned.
+
+        """
+
+        order_line_obj = self.pool.get('pos.order.line').\
+                browse(cr, uid, ids[0], context=context)
+        if order_line_obj.appointment_id:
+            raise except_orm(_('Error'), _("Can't delete this line since there's an appointment associated with it. Cancel the appointment to remove it."))
+        return super(pos_order_line, self).unlink(cr, uid, ids, context)

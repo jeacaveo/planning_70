@@ -379,6 +379,7 @@ class appointment(resource_planning, base_state, Model):
             del_order_line = self.pool.get('pos.order.line').\
                     browse(cr, uid, appt_obj.order_line_id.id, context=context)
             if del_order_line:
+                del_order_line.write({'appointment_id': None})
                 del_order_line.unlink()
 
         self.case_cancel(cr, uid, ids)
