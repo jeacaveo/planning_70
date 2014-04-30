@@ -7,7 +7,7 @@
             <field name="model">salon.spa.appointment</field>
             <field name="type">calendar</field>
             <field name="arch" type="xml">
-                <calendar string="Citas" color="category_id" date_start="start" date_delay="duration" mode="day">
+                <calendar string="Citas" color="state" date_start="start" date_delay="duration" mode="day">
                     <field name="client_id" />
                     <field name="service_id" />
                     <field name="space_id" />
@@ -25,11 +25,11 @@
                 <form string="Citas" version="7.0">
                     <header>
                         <button name="action_view_pos_order" string="View Invoice" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}" />
+                            attrs="{'invisible': [('state', 'in', ['draft', 'pending', 'cancel'])]}" />
                         <button name="action_check_in" string="Check In" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'not in', ['draft', 'pending'])]}" />
+                            attrs="{'invisible': [('state', 'not in', ['pending'])]}" />
                         <button name="action_cancel" string="Cancel" type="object" class="oe_highlight"
-                            attrs="{'invisible': [('state', 'in', ['cancel', 'done'])]}" />
+                            attrs="{'invisible': [('state', 'in', ['draft', 'cancel', 'done'])]}" />
                         <!-- <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" clickable="True" /> -->
                         <field name="state" widget="statusbar" nolabel="1" statusbar_visible="draft,pending,open,done,cancel" />
                     </header>
@@ -37,12 +37,11 @@
                         <group col="4">
                             <field name="client_id" />
                             <field name="start" on_change="onchange_appointment_start(employee_id, start, duration, context)" />
-                            <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, context)" />
+                            <field name="service_id" context="{'start_date': start}" on_change="onchange_appointment_service(service_id, employee_id, context)" />
                             <field name="duration" widget="float_time" readonly="1" />
                             <field name="employee_id" />
                             <field name="price" readonly="1" />
                             <field name="space_id" />
-                            <field name="category_id" invisible="True" />
                         </group>
                         <field name='notes' colspan='4' rowspan='8' nolabel='1' placeholder="Notas y Observaciones." />
                         <div class="oe_chatter">
@@ -66,6 +65,7 @@
                     <field name="space_id" />
                     <field name="price" />
                     <field name="state" />
+                    <!-- Flow is controled via form view
                     <button name="case_pending" string="En Espera" type="object"
                             states="draft,open" icon="gtk-undo"/>
                     <button name="case_open" string="Confirmar" type="object"
@@ -76,6 +76,7 @@
                             states="draft,pending,open" icon="gtk-cancel"/>
                     <button name="case_pending" string="Restaurar" type="object"
                             states="done,cancel" icon="gtk-refresh"/>
+                    -->
                 </tree>
             </field>
         </record>

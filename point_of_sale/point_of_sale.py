@@ -20,6 +20,8 @@
 ##############################################################################
 from openerp.osv import fields, osv
 from openerp import netsvc
+from openerp.osv.orm import except_orm
+from openerp.tools.translate import _
 
 
 class pos_order(osv.osv):
@@ -123,6 +125,18 @@ class pos_order(osv.osv):
             picking_obj.force_assign(cr, uid, [picking_id], context)
         return True
 
+    def action_create_invoice(self, cr, uid, id, context=None):
+        if not context:
+            context = {}
+        result = super(pos_order, self).action_create_invoice(cr, uid, id, context)
+
+        order_obj = self.pool.get('pos.order').browse(cr, uid, id, context=context)[0]
+        for line in order_obj.lines:
+            if line.appointment_id:
+                appt_obj = self.pool.get('salon.spa.appointment').browse(cr, uid, [line.appointment_id.id], context=context)[0]
+                appt_obj.case_close()
+
+        return result
 
 class pos_order_line(osv.osv):
     _inherit = 'pos.order.line'
@@ -133,3 +147,15 @@ class pos_order_line(osv.osv):
             'previous_appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
             }
+
+    def unlink(self, cr, uid, ids, context=None):
+        """
+        Avoid unlinking of order_lines that have an appointment assigned.
+
+        """
+
+        order_line_obj = self.pool.get('pos.order.line').\
+                browse(cr, uid, ids[0], context=context)
+        if order_line_obj.appointment_id:
+            raise except_orm(_('Error'), _("Can't delete this line since there's an appointment associated with it. Cancel the appointment to remove it."))
+        return super(pos_order_line, self).unlink(cr, uid, ids, context)

@@ -47,9 +47,6 @@ class appointment(resource_planning, base_state, Model):
             'client_id': fields.many2one(
                 'res.partner', 'Cliente',
                 domain=[('supplier', '=', False)], required=True,),
-            'category_id': fields.many2one(
-                'product.category', 'Familia',
-                domain=[('parent_id', '=', 'Servicios')], required=True),
             'service_id': fields.many2one(
                 'salon.spa.service', 'Servicio', required=True),
             'space_id': fields.many2one(
@@ -70,6 +67,8 @@ class appointment(resource_planning, base_state, Model):
                                              'Cancelada' no-show, etc."),
             'notes': fields.text('Notas'),
             'active': fields.boolean('Activo', required=False),
+            'order_line_id': fields.many2one(
+                'pos.order.line', 'Registro de Venta')
             }
 
     def _last_appointment_client(self, cr, uid, context=None):
@@ -143,12 +142,12 @@ class appointment(resource_planning, base_state, Model):
     _defaults = {
             'client_id': _last_appointment_client,
             'start': _next_available_date,
-            'state': 'pending',
+            'state': 'draft',
             'active': True
         }
 
     # appt = appointment
-    def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
+    def onchange_appointment_service(self, cr, uid, ids, service_id, employee_id, context=None):
         """
         Validates if resources (space and employee) are available for the
         time frame selected.
@@ -191,7 +190,7 @@ class appointment(resource_planning, base_state, Model):
                     if employee_available:
                         employee_ids.append(employee)
             if employee_ids:
-                assigned_employee = employee_ids[0]
+                assigned_employee = employee_id if employee_id in employee_ids else employee_ids[0]
             else:
                 assigned_employee = None
 
@@ -199,7 +198,6 @@ class appointment(resource_planning, base_state, Model):
                     'value': {'duration': duration,
                               'price': service_obj.service.list_price,
                               'space_id': assigned_space,
-                              'category_id': service_obj.categ_id,
                               'employee_id': assigned_employee
                         },
                     'domain': {'employee_id': [('id', 'in', employee_ids)],
@@ -211,7 +209,6 @@ class appointment(resource_planning, base_state, Model):
                      'space_id': None,
                      'duration': 0,
                      'employee_id': None,
-                     'category_id': None,
                      }
                 }
 
@@ -314,6 +311,8 @@ class appointment(resource_planning, base_state, Model):
 
         """
 
+        if not context:
+            context = {}
         order_ids = self._get_order_ids_client_day(cr, uid, client_id, date, context)
         # Order creation/modification
         if order_ids:
@@ -336,13 +335,17 @@ class appointment(resource_planning, base_state, Model):
             else:
                 raise except_orm(_('Error'), _('No cashbox available.'))
         # add service to order
-        self.pool.get('pos.order.line').create(cr, uid, {
-            'order_id': order_id,
-            'name': service_obj.service.name,
-            'product_id': service_obj.service.id,
-            'price_unit': service_obj.service.list_price,
-            'appointment_id': appt_id,
-            })
+        order_line_id = self.pool.get('pos.order.line').create(cr, uid, {
+                        'order_id': order_id,
+                        'name': service_obj.service.name,
+                        'product_id': service_obj.service.id,
+                        'price_unit': service_obj.service.list_price,
+                        'appointment_id': appt_id,
+                        })
+        # Update appointment with proper order line
+        appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
+        appt_obj.write({'order_line_id': order_line_id})
+
         # TODO Limpiar facturas cuando se elimina un appt o servicio
 
         return True
@@ -359,19 +362,26 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.search(cr, uid,
                 [('start', '>=', day_start),
                  ('start', '<=', day_end),
-                 ('state', 'in', ['draft', 'pending']),
+                 ('state', 'in', ['pending']),
                  ('client_id', '=', appt_obj.client_id.id)],
                 context=context)
         for appt_id in appt_ids:
             appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
-            if appt_obj.state in ['draft', 'pending']:
-                appt_obj.case_open()
+            appt_obj.case_open()
             if not self._create_update_order_client_day(cr, uid,\
                     appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
                 raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
         return True
 
     def action_cancel(self, cr, uid, ids, context=None):
+        appt_obj = self.browse(cr, uid, ids[0], context=context)
+        if appt_obj.order_line_id:
+            del_order_line = self.pool.get('pos.order.line').\
+                    browse(cr, uid, appt_obj.order_line_id.id, context=context)
+            if del_order_line:
+                del_order_line.write({'appointment_id': None})
+                del_order_line.unlink()
+
         self.case_cancel(cr, uid, ids)
         return True
 
@@ -421,6 +431,7 @@ class appointment(resource_planning, base_state, Model):
         appt_ids = self.pool.get('salon.spa.appointment').\
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
+                                 ('state', '!=', 'cancel'),
                                  ('id', '!=', ids),
                                  (resource_type, '=', resource)],
                         context=context)
@@ -467,12 +478,28 @@ class appointment(resource_planning, base_state, Model):
                         return True
         return False
 
+    def unlink(self, cr, uid, ids, context=None):
+        """
+        Avoid unlinking of appointments in 'done' state.
+
+        """
+
+        appt_obj = self.pool.get('salon.spa.appointment').\
+                browse(cr, uid, ids[0], context=context)
+        if appt_obj.state == 'done':
+            raise except_orm(_('Error'), _("Appointment is done/paid, it can't be deleted."))
+        return super(appointment, self).unlink(cr, uid, ids, context)
+
     def write(self, cr, uid, ids, vals, context=None):
         # keys in vals correspond with fields that have changed
         # Get values previous to save
         # prev_appt holds state of appt previous to save
         appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
+        # 'done' appointments mustn't be modified
+        if appt_obj.state == 'done':
+            raise except_orm(_('Error'), _("Appointment is done/paid, it can't be modified."))
+
         prev_appt = {'employee_id': appt_obj.employee_id.id,
                      'start': appt_obj.start,
                      'client_id': appt_obj.client_id.id,
@@ -505,7 +532,7 @@ class appointment(resource_planning, base_state, Model):
             if key not in current_appt:
                 current_appt[key] = val
 
-        # Check if employee is assigned to service.
+        # Check if employee is available and assigned to service.
         if vals.get('employee_id', False):
             employee_obj = self.pool.get('hr.employee').\
                     browse(cr, uid, current_appt['employee_id'],
@@ -518,9 +545,20 @@ class appointment(resource_planning, base_state, Model):
                     'assigned to work with %s!') % (
                     employee_obj.name,
                     service_obj.service.name))
+            if not self.check_resource_availability(cr, uid, ids,
+                    'employee_id', current_appt['employee_id'],
+                    current_appt['start'], current_appt['duration'], context):
+                self._raise_unavailable(cr, uid, 'hr.employee', current_appt['employee_id'], context)
+
+        # Check if space is available
+        if vals.get('space_id', False):
+            if not self.check_resource_availability(cr, uid, ids,
+                    'space_id', current_appt['space_id'],
+                    current_appt['start'], current_appt['duration'], context):
+                self._raise_unavailable(cr, uid, 'salon.spa.space', current_appt['space_id'], context)
 
         # Duration changes if service is modified
-        if vals.get('duration', False):
+        if vals.get('duration', False) or vals.get('employee_id', False):
             # Validate employee work schedule
             employee_available = self.check_employee_availability(cr, uid, ids,
                     current_appt['employee_id'], current_appt['start'],
@@ -559,13 +597,6 @@ class appointment(resource_planning, base_state, Model):
         # store read-only fields
         vals['price'] = service_obj.service.list_price
         vals['duration'] = service_obj.duration
-
-        # Check if client is available for service.
-        self._check_client_available(cr, uid, 0,  # 0=ids es el id del appointment, pero este no existe aun
-                vals.get('client_id', False), vals.get('start', False),
-                vals.get('duration', False), context)
-
-        id = super(appointment, self).create(cr, uid, vals, context)
         ids = vals
 
         # Validate employee work schedule
@@ -575,6 +606,14 @@ class appointment(resource_planning, base_state, Model):
         if not employee_available:
             self._raise_unavailable(cr, uid, 'hr.employee', vals['employee_id'], context)
 
+        id = super(appointment, self).create(cr, uid, vals, context)
+
+        # Check if client is available for service.
+        self._check_client_available(cr, uid, id,
+                vals.get('client_id', False), vals.get('start', False),
+                vals.get('duration', False), context)
+
+        self.case_pending(cr, uid, [id])
         return id
 
 
