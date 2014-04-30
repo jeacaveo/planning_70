@@ -203,7 +203,6 @@ class TestSalonSpa(common.TransactionCase):
         with self.assertRaises(except_orm) as ex:
             appt.write({'duration': 999})
         # Only manager users can unlink
-        import ipdb;ipdb.set_trace()
         cr, uid = self.cr, self.uid
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         with self.assertRaises(except_orm) as ex:
