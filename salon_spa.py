@@ -147,7 +147,7 @@ class appointment(resource_planning, base_state, Model):
         }
 
     # appt = appointment
-    def onchange_appointment_service(self, cr, uid, ids, service_id, context=None):
+    def onchange_appointment_service(self, cr, uid, ids, service_id, employee_id, context=None):
         """
         Validates if resources (space and employee) are available for the
         time frame selected.
@@ -190,7 +190,7 @@ class appointment(resource_planning, base_state, Model):
                     if employee_available:
                         employee_ids.append(employee)
             if employee_ids:
-                assigned_employee = employee_ids[0]
+                assigned_employee = employee_id if employee_id in employee_ids else employee_ids[0]
             else:
                 assigned_employee = None
 

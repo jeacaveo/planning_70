@@ -17,7 +17,7 @@ class TestSalonSpa(common.TransactionCase):
         ids = self.appt_obj.search(cr, uid, [],
                 order='create_date desc', context=context)
         ids = ids[0] + 1
-        onchange_values = model_obj.onchange_appointment_service(cr, uid, ids, service_id, context=context)['value']
+        onchange_values = model_obj.onchange_appointment_service(cr, uid, ids, service_id, employee_id=None, context=context)['value']
         values = {'client_id': client_id,
                   'start': start,
                   'service_id': service_id,
