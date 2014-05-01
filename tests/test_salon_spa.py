@@ -66,7 +66,7 @@ class TestSalonSpa(common.TransactionCase):
     def testAppointmentCancel(self):
         """
         Check canceling appointment changes it to proper status,
-        and removes pos.order.line if it exists.
+        removes pos.order.line if it exists and doesn't allow modifications.
 
         Also validate that it won't allow pos.order.line unlinking,
         if an appointment_id is present.
@@ -84,6 +84,9 @@ class TestSalonSpa(common.TransactionCase):
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         appt.action_cancel()
         self.assertTrue(appt.state == 'cancel')
+        # Validates modifications are not allowed after cancel
+        with self.assertRaises(except_orm) as ex:
+            appt.write({'duration': 0})
         # Validate pos.order.line is unlinked after appt is cancelled.
         order_line_obj = self.pos_order_line_obj.browse(cr, uid, appt.order_line_id.id)
         self.assertFalse(order_line_obj.id)

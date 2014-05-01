@@ -496,9 +496,12 @@ class appointment(resource_planning, base_state, Model):
         # prev_appt holds state of appt previous to save
         appt_obj = self.pool.get('salon.spa.appointment').\
                 browse(cr, uid, ids[0], context=context)
-        # 'done' appointments mustn't be modified
+
+        # 'done' and 'cancel' appointments mustn't be modified
         if appt_obj.state == 'done':
             raise except_orm(_('Error'), _("Appointment is done/paid, it can't be modified."))
+        elif appt_obj.state == 'cancel':
+            raise except_orm(_('Error'), _("Appointment was cancelled, it can't be modified."))
 
         prev_appt = {'employee_id': appt_obj.employee_id.id,
                      'start': appt_obj.start,
