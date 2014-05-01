@@ -143,9 +143,6 @@ class pos_order_line(osv.osv):
     _columns = {
             'appointment_id': fields.many2one(
                 'salon.spa.appointment', 'Appointment'),
-            # TODO this is needed only if you can cancel pos orders.
-            'previous_appointment_id': fields.many2one(
-                'salon.spa.appointment', 'Appointment'),
             }
 
     def unlink(self, cr, uid, ids, context=None):
