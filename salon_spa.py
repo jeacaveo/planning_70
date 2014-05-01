@@ -665,3 +665,25 @@ class space(Model):
     _defaults = {
             'resource_type': 'material',
             }
+
+
+class schedule(Model):
+    _name = 'salon.spa.schedule'
+
+    _columns = {
+            'date': fields.date('Date', required=True),
+            }
+
+    def create(self, cr, uid, vals, context=None):
+        if self.pool.get('salon.spa.schedule').search(cr, uid, [('date', '=', vals.get('date'))], context=context):
+            raise except_orm(_('Error'), _("Can't create schedule with this date. Duplicate exists."))
+        id = super(schedule, self).create(cr, uid, vals, context)
+        return id
+
+    def write(self, cr, uid, ids, vals, context=None):
+        if vals.get('date')\
+            and self.pool.get('salon.spa.schedule').\
+                    search(cr, uid, [('date', '=', vals.get('date'))], context=context):
+            raise except_orm(_('Error'), _("Can't change schedule to this date. Duplicate exists."))
+        result = super(schedule, self).write(cr, uid, ids, vals, context)
+        return result

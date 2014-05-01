@@ -28,6 +28,15 @@ class TestSalonSpa(common.TransactionCase):
                   }
         return model_obj.create(cr, uid, values)
 
+    def create_sched(self, cr, uid, model_obj, date, context=None):
+        """
+        Helper to create schedules.
+
+        """
+
+        values = {'date': date}
+        return model_obj.create(cr, uid, values)
+
     def setUp(self):
         super(TestSalonSpa, self).setUp()
 
@@ -37,6 +46,7 @@ class TestSalonSpa(common.TransactionCase):
         # Modules to test
         # appt = appointment
         self.appt_obj = self.registry('salon.spa.appointment')
+        self.sched_obj = self.registry('salon.spa.schedule')
         self.pos_order_obj = self.registry('pos.order')
         self.pos_order_line_obj = self.registry('pos.order.line')
 
@@ -51,17 +61,6 @@ class TestSalonSpa(common.TransactionCase):
                                         context={'start_date': start})
 
         # Negative tests data
-
-    def testAppointmentCreated(self):
-        """
-        Check if appontment creation is working.
-        
-        """
-
-        # TODO use receptionist user
-        cr, uid = self.cr, 5  # self.uid
-        appt = self.appt_obj.browse(cr, uid, self.appt_id)
-        self.assertTrue(appt.id)
 
     def testAppointmentCancel(self):
         """
@@ -227,3 +226,19 @@ class TestSalonSpa(common.TransactionCase):
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         with self.assertRaises(except_orm) as ex:
             appt.unlink()
+
+    def testScheduleDuplicate(self):
+        """
+        Check if schedule creation is working and not allowing duplicates.
+        
+        """
+
+        cr, uid = self.cr, self.uid
+        date = '2014-05-01'
+        sched_id = self.create_sched(cr, uid, self.sched_obj, date)
+        sched_obj = self.sched_obj.browse(cr, uid, sched_id)
+        self.assertTrue(sched_obj.id)
+        with self.assertRaises(except_orm) as ex:
+            self.create_sched(cr, uid, self.sched_obj, sched_obj.date)
+        with self.assertRaises(except_orm) as ex:
+            sched_obj.write({'date': sched_obj.date})
