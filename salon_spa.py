@@ -670,8 +670,11 @@ class space(Model):
 class schedule(Model):
     _name = 'salon.spa.schedule'
 
+    _order = 'date desc'
+
     _columns = {
             'date': fields.date('Date', required=True),
+            'schedule_line_ids': fields.one2many('salon.spa.schedule.line', 'schedule_id', 'Schedule Lines'),
             }
 
     def create(self, cr, uid, vals, context=None):
@@ -687,3 +690,23 @@ class schedule(Model):
             raise except_orm(_('Error'), _("Can't change schedule to this date. Duplicate exists."))
         result = super(schedule, self).write(cr, uid, ids, vals, context)
         return result
+
+
+class schedule_line(Model):
+    _name = 'salon.spa.schedule.line'
+
+    _order = 'hour_start, employee_id'
+
+    _columns = {
+            'employee_id': fields.many2one(
+                'hr.employee', 'Employee', required=True),
+            'hour_start': fields.float(u'Starting Hour', required=True),
+            'hour_end': fields.float(u'Ending Hour', required=True),
+            'missing': fields.boolean('Missing', required=False),
+            'schedule_id': fields.many2one(
+                'salon.spa.schedule', 'Schedule', required=True),
+            }
+
+    _defaults = {
+            'missing': False,
+            }
