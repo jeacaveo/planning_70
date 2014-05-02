@@ -11,7 +11,8 @@ class TestSalonSpa(common.TransactionCase):
 
         """
 
-        values = {'date': date, 'hour_start': 9, 'hour_end': 21}
+        # TODO problem with timezone
+        values = {'date': date, 'hour_start': 0, 'hour_end': 23}
         return model_obj.create(cr, uid, values)
 
     def create_appt(self, cr, uid, model_obj,
