@@ -112,24 +112,20 @@ class appointment(resource_planning, base_state, Model):
 
         # Round to next five minute interval
         date_start = self._round_time(round_to=60 * 5) + timedelta(minutes=5)
-        # TODO use correct timezone to compare with resource.calendar.attendance
-        # attd = attendance
-        calendar_id = self.pool.get('resource.calendar').\
-                search(cr, uid, [('name', '=', 'Horario')], context=context)
-        attd_id = self.pool.get('resource.calendar.attendance').\
-                search(cr, uid,
-                       [('dayofweek', '=', date_start.weekday()),
-                        ('calendar_id', '=', calendar_id)],
-                       context=context)
-        if attd_id:
-            attd_obj = self.pool.get('resource.calendar.attendance').\
-                    browse(cr, uid, attd_id[0], context=context)
-            date_closing = date_start.replace(hour=int(attd_obj.hour_to), minute=00, second=00)
+        # TODO use correct timezone to compare with salon.spa.schedule
+        # sched = schedule
+        date = datetime.strftime(date_start.date(), "%Y-%m-%d")
+        sched_id = self.pool.get('salon.spa.schedule').\
+                search(cr, uid, [('date', '=', date)], context=context)
+        if sched_id:
+            sched_obj = self.pool.get('salon.spa.schedule').\
+                    browse(cr, uid, sched_id[0], context=context)
+            date_closing = date_start.replace(hour=int(sched_obj.hour_end), minute=00, second=00)
             minutes_till_closing = (date_closing - date_start).seconds / 60
             date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
             for minutes in range(5, minutes_till_closing, 5):
-                if date_start.hour >= attd_obj.hour_from \
-                    and date_start.hour < attd_obj.hour_to:
+                if date_start.hour >= sched_obj.hour_start \
+                    and date_start.hour < sched_obj.hour_end:
                     date_end = date_start + timedelta(minutes=30)  # 30 minutes = default appt length
                     if not self.search(cr, uid,
                         [('start', '>=', self._datetime_to_string(date_start)),
