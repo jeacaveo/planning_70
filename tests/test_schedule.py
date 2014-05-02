@@ -50,5 +50,30 @@ class TestSalonSpa(common.TransactionCase):
 
         cr, uid = self.cr, self.uid
         sched_obj = self.sched_obj.browse(cr, uid, self.sched_id)
+
+        # Validate creation
+        values = {'employee_id': 25, 'hour_start': 8, 'hour_end': 17, 'schedule_id': sched_obj.id}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.create(cr, uid, values)
+        values = {'employee_id': 25, 'hour_start': 9, 'hour_end': 22, 'schedule_id': sched_obj.id}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.create(cr, uid, values)
         values = {'employee_id': 25, 'hour_start': 9, 'hour_end': 17, 'schedule_id': sched_obj.id}
-        self.sched_line_obj.create(cr, uid, values)
+        sched_line_id = self.sched_line_obj.create(cr, uid, values)
+        sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
+        self.assertTrue(sched_line_obj.id)
+
+        # Validate update 
+        values = {'hour_start': 8}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        values = {'hour_end': 22}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        values = {'hour_end': 9}
+        self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        values = {'hour_end': 17}
+        self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
+        self.assertTrue(sched_line_obj.hour_start == 9)
+        self.assertTrue(sched_line_obj.hour_end == 17)

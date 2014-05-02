@@ -709,3 +709,23 @@ class schedule_line(Model):
     _defaults = {
             'missing': False,
             }
+
+    def create(self, cr, uid, vals, context=None):
+        sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
+        if sched_obj.hour_start > vals.get('hour_start')\
+                or sched_obj.hour_end < vals.get('hour_end'):
+            raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't create."))
+        id = super(schedule_line, self).create(cr, uid, vals, context)
+        return id
+
+    def write(self, cr, uid, ids, vals, context=None):
+        sched__line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        hour_start = vals.get('hour_start')
+        hour_end = vals.get('hour_end')
+        if hour_start or hour_end:
+            sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched__line_obj.schedule_id.id, context=context)
+            if (hour_start and sched_obj.hour_start > hour_start)\
+                or (hour_end and sched_obj.hour_end < hour_end):
+                raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't update."))
+        result = super(schedule_line, self).write(cr, uid, ids, vals, context)
+        return result
