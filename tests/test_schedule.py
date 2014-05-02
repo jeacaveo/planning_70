@@ -23,7 +23,7 @@ class TestSalonSpa(common.TransactionCase):
         self.sched_obj = self.registry('salon.spa.schedule')
         self.sched_line_obj = self.registry('salon.spa.schedule.line')
 
-        date = '2014-05-01'
+        date = '2000-05-01'
         self.sched_id = self.create_sched(cr, uid, self.sched_obj, date)
 
         # Negative tests data
