@@ -291,10 +291,10 @@ class appointment(resource_planning, base_state, Model):
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
         day_start, day_end = self._day_start_end_time(date)
-        # TODO filter by status and dont allow to create a new order if one is unpaid
         return self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
+                                 ('state', '!=', 'invoiced')
                                  ('partner_id', '=', client_id)],
                        context=context)
 
