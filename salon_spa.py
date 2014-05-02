@@ -463,18 +463,19 @@ class appointment(resource_planning, base_state, Model):
         end_date = fields.datetime.context_timestamp(
                 cr, uid, end_date, context=context)
 
-        employee_obj = self.pool.get('hr.employee').\
-                browse(cr, uid, employee_id, context=context)
-        appt_day_of_week = start_date.weekday()
         appt_start_hour = start_date.hour
         appt_end_hour = end_date.hour + (end_date.minute / 60)  # float format
 
-        # if employee has no work schedule assigned, skip it
-        if employee_obj.working_hours:
-            for period in employee_obj.working_hours.attendance_ids:
-                if int(period.dayofweek) == appt_day_of_week:
-                    if appt_start_hour >= period.hour_from \
-                        and appt_end_hour <= period.hour_to:
+        date = datetime.strftime(start_date.date(), "%Y-%m-%d")
+        sched_id = self.pool.get('salon.spa.schedule').\
+                search(cr, uid, [('date', '=', date)])
+        sched_obj = self.pool.get('salon.spa.schedule').\
+                browse(cr, uid, sched_id, context=context)
+        if sched_obj:
+            for line in sched_obj[0].schedule_line_ids:
+                if line.employee_id.id == employee_id:
+                    if appt_start_hour >= line.hour_start \
+                        and appt_end_hour <= line.hour_end:
                         return True
         return False
 
