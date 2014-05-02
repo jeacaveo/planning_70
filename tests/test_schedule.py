@@ -126,12 +126,15 @@ class TestSchedule(common.TransactionCase):
                                                  'start_date': start})
         appt_obj = self.appt_obj.browse(cr, uid, self.appt_id)
 
-        # Can't modifiy if new schedule.line starting hour is after appt start.
+        # Can't modifiy if schedule.line starting hour is after appt start.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_start': 16.25})
-        # Can't modify if new schedule.line ending hour is before appt end.
+            sched_line_obj.write({'hour_start': 16.75})
+        # Can't modify if schedule.line ending hour is before appt end.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_end': 17.50})
+            sched_line_obj.write({'hour_end': 17.10})
+        # Can't modify if schedule.line missing is true and has an appt.
+        with self.assertRaises(except_orm) as ex:
+            sched_line_obj.write({'missing': True})
         # Can't delete if appt inside schedule period.
         with self.assertRaises(except_orm) as ex:
             sched_line_obj.unlink()
