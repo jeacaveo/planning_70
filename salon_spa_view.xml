@@ -147,7 +147,13 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Schedule">
-                    <field name="date" />
+                    <group col="4">
+                        <field name="date" />
+                    </group>
+                    <group col="4">
+                        <field name="hour_start" widget="float_time" />
+                        <field name="hour_end" widget="float_time" />
+                    </group>
                     <notebook colspan="4">
                         <page string='Schedule Detail'>
                             <field name="schedule_line_ids" colspan="4" nolabel="1">

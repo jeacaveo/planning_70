@@ -10,7 +10,7 @@ class TestSalonSpa(common.TransactionCase):
 
         """
 
-        values = {'date': date}
+        values = {'date': date, 'hour_start': 9, 'hour_end': 21}
         return model_obj.create(cr, uid, values)
 
     def setUp(self):

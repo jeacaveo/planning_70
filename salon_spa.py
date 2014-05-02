@@ -675,6 +675,8 @@ class schedule(Model):
 
     _columns = {
             'date': fields.date('Date', required=True),
+            'hour_start': fields.float(u'Starting Hour', required=True),
+            'hour_end': fields.float(u'Ending Hour', required=True),
             'schedule_line_ids': fields.one2many('salon.spa.schedule.line', 'schedule_id', 'Schedule Lines'),
             }
 
