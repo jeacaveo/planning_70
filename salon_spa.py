@@ -780,7 +780,7 @@ class schedule_line(Model):
                                                         int(sched_line_obj.hour_end))
         appt_exists = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
         if appt_exists:
-            raise except_orm(_('Error'), _("An existing appointment is out of an employee time range,"
+            raise except_orm(_('Error'), _("Start and/or end times for an employee are outside an existing appointment,"
                                            " please cancel or move the appointment before saving."))
 
         result = super(schedule_line, self).write(cr, uid, ids, vals, context)
@@ -802,6 +802,6 @@ class schedule_line(Model):
                                                         int(hour_end))
         appt_exists = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
         if appt_exists:
-            raise except_orm(_('Error'), _("An existing appointment is out of an employee time range,"
-                                           " please cancel or move the appointment before saving."))
+            raise except_orm(_('Error'), _("A schedule was removed for an employee with appointment(s) assign,"
+                                           " please cancel or remove the appointment(s) before deleting."))
         return super(schedule_line, self).unlink(cr, uid, ids, context)
