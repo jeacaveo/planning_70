@@ -28,7 +28,7 @@ class TestSalonSpa(common.TransactionCase):
         sched_obj = self.sched_obj.browse(cr, uid, self.sched_id)
         for employee in employee_ids:
             employee_obj = self.employee_obj.browse(cr, uid, employee, context=context)
-            values = {'employee_id': employee_obj.id, 'hour_start': 0, 'hour_end': 23, 'schedule_id': sched_obj.id}
+            values = {'employee_id': employee_obj.id, 'hour_start': 9, 'hour_end': 17, 'schedule_id': sched_obj.id}
             self.sched_line_obj.create(cr, uid, values)
 
         # TODO get real id sequence

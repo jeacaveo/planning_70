@@ -294,7 +294,7 @@ class appointment(resource_planning, base_state, Model):
         return self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
-                                 ('state', '!=', 'invoiced')
+                                 ('state', '!=', 'invoiced'),
                                  ('partner_id', '=', client_id)],
                        context=context)
 
@@ -710,22 +710,98 @@ class schedule_line(Model):
             'missing': False,
             }
 
+    def _range_start_end_time(self, date, hour_start, hour_end):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return 2 string dates corresponding to the starting and ending hours
+        received in parameters (as integers).
+
+        """
+
+        day_start = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=hour_start, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=hour_end, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        return day_start, day_end
+
+    def _get_appointments_in_range(self, cr, uid, employee_id, start_time, end_time, context=None):
+        """
+        Get two datetime string ranges and determine if an appointment exists inside.
+
+        """
+
+        appt_exists = self.pool.get('salon.spa.appointment').\
+                search(cr, uid, [('start', '>=', start_time),
+                                 ('start', '<=', end_time),
+                                 ('state', '!=', 'cancel'),
+                                 ('employee_id', '=', employee_id)],
+                        context=context)
+        return appt_exists
+
     def create(self, cr, uid, vals, context=None):
+        """
+        Modified to add validation to avoid assigning start/end outside schedule range.
+
+        """
+
+        hour_start = vals.get('hour_start')
+        hour_end = vals.get('hour_end')
+
         sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
-        if sched_obj.hour_start > vals.get('hour_start')\
-                or sched_obj.hour_end < vals.get('hour_end'):
+        if sched_obj.hour_start > hour_start\
+                or sched_obj.hour_end < hour_end:
             raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't create."))
+
         id = super(schedule_line, self).create(cr, uid, vals, context)
         return id
 
     def write(self, cr, uid, ids, vals, context=None):
-        sched__line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        """
+        Modified to add validations:
+
+        salon.spa.schedule: avoid assigning start/end outside schedule range.
+        salon.spa.appointment: avoid assigning start/end times outside all appointment range.
+
+        """
+
         hour_start = vals.get('hour_start')
         hour_end = vals.get('hour_end')
+
+        sched_line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
         if hour_start or hour_end:
-            sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched__line_obj.schedule_id.id, context=context)
+            sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
             if (hour_start and sched_obj.hour_start > hour_start)\
                 or (hour_end and sched_obj.hour_end < hour_end):
                 raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't update."))
+
+        date = datetime.strptime(sched_obj.date, '%Y-%m-%d')
+        start_time, end_time = self._range_start_end_time(str(date),
+                                                        int(sched_line_obj.hour_start),
+                                                        int(sched_line_obj.hour_end))
+        appt_exists = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
+        if appt_exists:
+            raise except_orm(_('Error'), _("An existing appointment is out of an employee time range,"
+                                           " please cancel or move the appointment before saving."))
+
         result = super(schedule_line, self).write(cr, uid, ids, vals, context)
         return result
+
+    def unlink(self, cr, uid, ids, context=None):
+        """
+        Modified to add validation to avoid unlink with appointments in range.
+
+        """
+
+        sched_line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        hour_start = sched_line_obj.hour_start
+        hour_end =  sched_line_obj.hour_end
+        sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
+        date = datetime.strptime(sched_obj.date, '%Y-%m-%d')
+        start_time, end_time = self._range_start_end_time(str(date),
+                                                        int(hour_start),
+                                                        int(hour_end))
+        appt_exists = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
+        if appt_exists:
+            raise except_orm(_('Error'), _("An existing appointment is out of an employee time range,"
+                                           " please cancel or move the appointment before saving."))
+        return super(schedule_line, self).unlink(cr, uid, ids, context)

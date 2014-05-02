@@ -128,18 +128,19 @@ class TestSchedule(common.TransactionCase):
 
         # Can't modifiy if new schedule.line starting hour is after appt start.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_start': 12.51})
+            sched_line_obj.write({'hour_start': 16.25})
         # Can't modify if new schedule.line ending hour is before appt end.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_end': 13.49})
+            sched_line_obj.write({'hour_end': 17.50})
         # Can't delete if appt inside schedule period.
         with self.assertRaises(except_orm) as ex:
             sched_line_obj.unlink()
 
-        # Validate all is allowed after appt is removed.
-        appt_obj.unlink()
-        sched_line_obj.write({'hour_start': 12.51})
-        sched_line_obj.write({'hour_end': 13.49})
+        # Validate all is allowed after appt is removed/canceled.
+        appt_obj.case_cancel()
+        sched_line_obj.write({'hour_start': 16.25})
+        sched_line_obj.write({'hour_end': 17.50})
+        sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
+        self.assertTrue(sched_line_obj.hour_start == 16.25)
+        self.assertTrue(sched_line_obj.hour_end == 17.50)
         sched_line_obj.unlink()
-        sched_line_obj = self.sched_obj.browse(cr, uid, sched_line_id)
-        self.assertFalse(sched_line_obj.id)
