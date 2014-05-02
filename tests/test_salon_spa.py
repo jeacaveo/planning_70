@@ -73,7 +73,8 @@ class TestSalonSpa(common.TransactionCase):
                                         client_id,
                                         self.start,
                                         self.service_id,
-                                        context={'start_date': self.start})
+                                        context={'tz': 'America/Santo_Domingo',
+                                                 'start_date': self.start})
 
         # Negative tests data
 
@@ -121,7 +122,8 @@ class TestSalonSpa(common.TransactionCase):
                                    appt_cancel.client_id.id,
                                    appt_cancel.start,
                                    appt_cancel.service_id.id,
-                                   context={'start_date': appt_cancel.start})
+                                   context={'tz': 'America/Santo_Domingo',
+                                            'start_date': self.start})
         appt = self.appt_obj.browse(cr, uid, appt_id)
         self.assertTrue(appt.id)
 
@@ -140,7 +142,8 @@ class TestSalonSpa(common.TransactionCase):
                                        first_appt.client_id.id,
                                        self.start,
                                        self.service_id,
-                                       context={'start_date': self.start})
+                                       context={'tz': 'America/Santo_Domingo',
+                                                'start_date': self.start})
         appt = self.appt_obj.browse(cr, uid, appt_id)
         self.assertFalse(appt)
 
@@ -158,7 +161,8 @@ class TestSalonSpa(common.TransactionCase):
                                    client_id,
                                    self.start,
                                    self.service_id,
-                                   context={'start_date': self.start})
+                                   context={'tz': 'America/Santo_Domingo',
+                                            'start_date': self.start})
         appt = self.appt_obj.browse(cr, uid, appt_id)
         with self.assertRaises(except_orm) as ex:
             appt.write({'employee_id': first_appt.employee_id.id})
@@ -178,7 +182,8 @@ class TestSalonSpa(common.TransactionCase):
                                    client_id,
                                    self.start,
                                    self.service_id,
-                                   context={'start_date': self.start})
+                                   context={'tz': 'America/Santo_Domingo',
+                                            'start_date': self.start})
         appt = self.appt_obj.browse(cr, uid, appt_id)
         with self.assertRaises(except_orm) as ex:
             appt.write({'space_id': first_appt.space_id.id})

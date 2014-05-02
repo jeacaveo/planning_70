@@ -9,7 +9,8 @@ class TestSchedule(common.TransactionCase):
 
         """
 
-        values = {'date': date, 'hour_start': 9, 'hour_end': 21}
+        # TODO problem with timezone
+        values = {'date': date, 'hour_start': 0, 'hour_end': 23}
         return model_obj.create(cr, uid, values)
 
     # Refator this methos to avoid repetition (it also exists in test_salon_spa.py)
@@ -49,7 +50,7 @@ class TestSchedule(common.TransactionCase):
         # appt = appointment
         self.appt_obj = self.registry('salon.spa.appointment')
 
-        date = '2000-05-01'
+        date = '2000-01-01'
         self.sched_id = self.create_sched(cr, uid, self.sched_obj, date)
 
         # Negative tests data
@@ -95,9 +96,11 @@ class TestSchedule(common.TransactionCase):
         self.assertTrue(sched_line_obj.id)
 
         # Validate update 
+        # Can't update if hour_start < schedule.hour_start
         values = {'hour_start': 8}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        # Can't update if hour_end > schedule.hour_end
         values = {'hour_end': 22}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
@@ -111,7 +114,7 @@ class TestSchedule(common.TransactionCase):
 
         # Create appointment
         client_id = 68
-        start = '2014-05-01 12:30:00'
+        start = '2000-01-01 12:30:00'
         service_id =  25
         employee_id = sched_line_obj.employee_id.id
         self.appt_id = self.create_appt(cr, uid, self.appt_obj,
@@ -119,7 +122,8 @@ class TestSchedule(common.TransactionCase):
                                         start,
                                         service_id,
                                         employee_id=employee_id,
-                                        context={'start_date': start})
+                                        context={'tz': 'America/Santo_Domingo',
+                                                 'start_date': start})
         appt_obj = self.appt_obj.browse(cr, uid, self.appt_id)
 
         # Can't modifiy if new schedule.line starting hour is after appt start.
