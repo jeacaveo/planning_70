@@ -11,8 +11,7 @@ class TestSalonSpa(common.TransactionCase):
 
         """
 
-        # TODO problem with timezone
-        values = {'date': date, 'hour_start': 0, 'hour_end': 23}
+        values = {'date': date, 'hour_start': 9, 'hour_end': 21}
         return model_obj.create(cr, uid, values)
 
     def create_appt(self, cr, uid, model_obj,
@@ -67,7 +66,8 @@ class TestSalonSpa(common.TransactionCase):
         self.sched_id = self.create_sched(cr, uid, self.sched_obj, date)
 
         client_id = 68
-        self.start = '2000-01-01 12:30:00'
+        # TODO fix timezone problem (this time is actually 12:30)
+        self.start = '2000-01-01 16:30:00'
         self.service_id =  25
         self.appt_id = self.create_appt(cr, uid, self.appt_obj,
                                         client_id,

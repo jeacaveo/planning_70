@@ -9,8 +9,7 @@ class TestSchedule(common.TransactionCase):
 
         """
 
-        # TODO problem with timezone
-        values = {'date': date, 'hour_start': 0, 'hour_end': 23}
+        values = {'date': date, 'hour_start': 9, 'hour_end': 21}
         return model_obj.create(cr, uid, values)
 
     # Refator this methos to avoid repetition (it also exists in test_salon_spa.py)
@@ -114,7 +113,8 @@ class TestSchedule(common.TransactionCase):
 
         # Create appointment
         client_id = 68
-        start = '2000-01-01 12:30:00'
+        # TODO fix timezone problem (this time is actually 12:30)
+        start = '2000-01-01 16:30:00'
         service_id =  25
         employee_id = sched_line_obj.employee_id.id
         self.appt_id = self.create_appt(cr, uid, self.appt_obj,
