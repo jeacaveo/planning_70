@@ -42,7 +42,7 @@ class TestSalonSpa(common.TransactionCase):
                   'service_id': service_id,
                   'duration': onchange_values['duration'],
                   'price': onchange_values['price'],
-                  'space_id': onchange_values['space_id'],
+                  'space_id': employee_id or onchange_values['space_id'],
                   'employee_id': onchange_values['employee_id']
                   }
         return model_obj.create(cr, uid, values)
