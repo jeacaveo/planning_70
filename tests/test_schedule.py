@@ -125,7 +125,8 @@ class TestSchedule(common.TransactionCase):
                                                   ('start', '>=', day_start),
                                                   ('start', '<=', day_end),
                                                   ])
-        self.assertTrue(len(appt_ids))
+        appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
+        self.assertEqual(appt_obj.start, '2000-01-01 13:00:00')
 
         # Validate update 
         # Can't update if hour_start < schedule.hour_start.
@@ -159,7 +160,6 @@ class TestSchedule(common.TransactionCase):
             sched_line_obj.unlink()
 
         # Cancel existing appointment
-        appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
         appt_obj.case_cancel()
 
         # Can't update hour_end to less than or equal to hour_start.
