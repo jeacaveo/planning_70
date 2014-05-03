@@ -126,7 +126,7 @@ class TestSchedule(common.TransactionCase):
                                                   ('start', '<=', day_end),
                                                   ])
         appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
-        self.assertEqual(appt_obj.start, '2000-01-01 13:00:00')
+        self.assertEqual(appt_obj.start, '2000-01-01 17:00:00')
 
         # Validate update 
         # Can't update if hour_start < schedule.hour_start.
@@ -139,19 +139,19 @@ class TestSchedule(common.TransactionCase):
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
         values = {'hour_start': 9}
         self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
-        values = {'hour_end': 17}
+        values = {'hour_end': 19}
         self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
         self.assertTrue(sched_line_obj.hour_start == 9)
-        self.assertTrue(sched_line_obj.hour_end == 17)
+        self.assertTrue(sched_line_obj.hour_end == 19)
 
 
         # Can't modifiy if schedule.line starting hour is after appt start.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_start': 13.25})
+            sched_line_obj.write({'hour_start': 17.25})
         # Can't modify if schedule.line ending hour is before appt end.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_end': 13.50})
+            sched_line_obj.write({'hour_end': 17.50})
         # Can't modify if schedule.line missing is true and has an appt.
         with self.assertRaises(except_orm) as ex:
             sched_line_obj.write({'missing': True})
@@ -167,9 +167,9 @@ class TestSchedule(common.TransactionCase):
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
         # Validate all is allowed after appt is removed/canceled.
-        sched_line_obj.write({'hour_start': 13.25})
-        sched_line_obj.write({'hour_end': 13.50})
+        sched_line_obj.write({'hour_start': 17.25})
+        sched_line_obj.write({'hour_end': 17.50})
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
-        self.assertTrue(sched_line_obj.hour_start == 13.25)
-        self.assertTrue(sched_line_obj.hour_end == 13.50)
+        self.assertTrue(sched_line_obj.hour_start == 17.25)
+        self.assertTrue(sched_line_obj.hour_end == 17.50)
         sched_line_obj.unlink()
