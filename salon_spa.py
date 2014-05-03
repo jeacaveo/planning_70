@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from openerp.addons.base_status.base_state import base_state
 from openerp.tools.translate import _
@@ -724,7 +724,7 @@ class schedule_line(Model):
 
         day_start = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=hour_start, minute=0, second=0)
         day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
-        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=hour_end, minute=59, second=59)
+        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=hour_end, minute=0, second=0)
         day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
         return day_start, day_end
 
@@ -751,6 +751,11 @@ class schedule_line(Model):
 
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
 
+    def _validate_start_end(self, hour_start, hour_end):
+        if hour_end <= hour_start:
+            raise except_orm(_('Error'), _("Ending time is greater or equal to starting time, please fix."))
+        return True
+
     def create(self, cr, uid, vals, context=None):
         """
         Modified to add validation to avoid assigning start/end outside schedule range.
@@ -759,13 +764,40 @@ class schedule_line(Model):
 
         hour_start = vals.get('hour_start')
         hour_end = vals.get('hour_end')
+        self._validate_start_end(hour_start, hour_end)
 
         sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
         if sched_obj.hour_start > hour_start\
                 or sched_obj.hour_end < hour_end:
             raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't create."))
-
+        # Create schedule.line before appointment
         id = super(schedule_line, self).create(cr, uid, vals, context)
+
+        # Create lunch break
+        time_float = (hour_end + hour_start) / 2
+        hours = int(time_float)
+        minutes = (time_float - hours) * 60
+        time_str = str(time(hour=hours, minute=minutes))
+        start = sched_obj.date + ' ' + time_str
+        client_id = self.pool.get('res.partner').\
+                search(cr, uid, [('name', '=', 'Break')], context=context)
+        service_id = self.pool.get('salon.spa.service').\
+                search(cr, uid, [('name', '=', 'Lunch')], context=context)
+        space_id = self.pool.get('salon.spa.space').\
+                search(cr, uid, [('name', '=', 'Libre')], context=context)
+        # To get service information.
+        service_obj = self.pool.get('salon.spa.service').\
+                browse(cr, uid, client_id[0], context=context)
+        values = {'client_id': client_id[0],
+                  'start': start,
+                  'service_id': service_id[0],
+                  'duration': service_obj.duration,
+                  'price': service_obj.service.list_price,
+                  'space_id': space_id[0],
+                  'employee_id': vals.get('employee_id')
+                  }
+        self.pool.get('salon.spa.appointment').create(cr, uid, values)
+
         return id
 
     def write(self, cr, uid, ids, vals, context=None):
@@ -782,6 +814,9 @@ class schedule_line(Model):
         missing = vals.get('missing')
 
         sched_line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        self._validate_start_end(hour_start or sched_line_obj.hour_start,
+                                 hour_end or sched_line_obj.hour_end)
+
         if hour_start or hour_end or missing:
             sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
             if (hour_start and sched_obj.hour_start > hour_start)\

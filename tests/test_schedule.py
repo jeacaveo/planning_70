@@ -2,7 +2,25 @@
 from openerp.tests import common
 from openerp.osv.orm import except_orm
 
+from datetime import datetime
+
+
 class TestSchedule(common.TransactionCase):
+    # TODO REFACTOR, this is a duplicate method
+    def _day_start_end_time(self, date):
+        """
+        Get a string date in 'YYYY-mm-dd HH:MM:SS' format.
+        Return 2 string dates corresponding to the starting and ending hours
+        of the day of the original date.
+
+        """
+
+        day_start = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0)
+        day_start = datetime.strftime(day_start, "%Y-%m-%d %H:%M:%S")
+        day_end = datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(hour=23, minute=59, second=59)
+        day_end = datetime.strftime(day_end, "%Y-%m-%d %H:%M:%S")
+        return day_start, day_end
+
     def create_sched(self, cr, uid, model_obj, date, context=None):
         """
         Helper to create schedules.
@@ -72,7 +90,7 @@ class TestSchedule(common.TransactionCase):
         """
         Validate schedule.line create/update.
 
-        Check if schedule.line has an appointment assigned to it's employee_id,
+        Check if schedule.line creates an appointment assigned to it's employee_id,
         if it does, don't allow modification (start/end hours or missing)
         or unlinking, else allow it.
         
@@ -83,10 +101,16 @@ class TestSchedule(common.TransactionCase):
         sched_obj = self.sched_obj.browse(cr, uid, self.sched_id)
 
         # Validate creation
+        # Can't create schedule.line with hour_start less than schedule hour_start.
         values = {'employee_id': 25, 'hour_start': 8, 'hour_end': 17, 'schedule_id': sched_obj.id}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.create(cr, uid, values)
+        # Can't create schedule.line with hour_end greater than schedule hour_end.
         values = {'employee_id': 25, 'hour_start': 9, 'hour_end': 22, 'schedule_id': sched_obj.id}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.create(cr, uid, values)
+        # Can't create schedule.line with hour_end less than or equal to hour_start.
+        values = {'employee_id': 25, 'hour_start': 12, 'hour_end': 10, 'schedule_id': sched_obj.id}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.create(cr, uid, values)
         values = {'employee_id': 25, 'hour_start': 9, 'hour_end': 17, 'schedule_id': sched_obj.id}
@@ -94,16 +118,25 @@ class TestSchedule(common.TransactionCase):
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
         self.assertTrue(sched_line_obj.id)
 
+        # Validate if lunch appointment was created.
+        date = datetime.strptime(sched_obj.date, "%Y-%m-%d")
+        day_start, day_end = self._day_start_end_time(str(date))
+        appt_ids = self.appt_obj.search(cr, uid, [('employee_id', '=', sched_line_obj.employee_id.id),
+                                                  ('start', '>=', day_start),
+                                                  ('start', '<=', day_end),
+                                                  ])
+        self.assertTrue(len(appt_ids))
+
         # Validate update 
-        # Can't update if hour_start < schedule.hour_start
+        # Can't update if hour_start < schedule.hour_start.
         values = {'hour_start': 8}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
-        # Can't update if hour_end > schedule.hour_end
+        # Can't update if hour_end > schedule.hour_end.
         values = {'hour_end': 22}
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
-        values = {'hour_end': 9}
+        values = {'hour_start': 9}
         self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
         values = {'hour_end': 17}
         self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
@@ -111,27 +144,13 @@ class TestSchedule(common.TransactionCase):
         self.assertTrue(sched_line_obj.hour_start == 9)
         self.assertTrue(sched_line_obj.hour_end == 17)
 
-        # Create appointment
-        client_id = 68
-        # TODO fix timezone problem (this time is actually 12:30)
-        start = '2000-01-01 16:30:00'
-        service_id =  25
-        employee_id = sched_line_obj.employee_id.id
-        self.appt_id = self.create_appt(cr, uid, self.appt_obj,
-                                        client_id,
-                                        start,
-                                        service_id,
-                                        employee_id=employee_id,
-                                        context={'tz': 'America/Santo_Domingo',
-                                                 'start_date': start})
-        appt_obj = self.appt_obj.browse(cr, uid, self.appt_id)
 
         # Can't modifiy if schedule.line starting hour is after appt start.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_start': 16.75})
+            sched_line_obj.write({'hour_start': 13.25})
         # Can't modify if schedule.line ending hour is before appt end.
         with self.assertRaises(except_orm) as ex:
-            sched_line_obj.write({'hour_end': 17.10})
+            sched_line_obj.write({'hour_end': 13.50})
         # Can't modify if schedule.line missing is true and has an appt.
         with self.assertRaises(except_orm) as ex:
             sched_line_obj.write({'missing': True})
@@ -139,11 +158,18 @@ class TestSchedule(common.TransactionCase):
         with self.assertRaises(except_orm) as ex:
             sched_line_obj.unlink()
 
-        # Validate all is allowed after appt is removed/canceled.
+        # Cancel existing appointment
+        appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
         appt_obj.case_cancel()
-        sched_line_obj.write({'hour_start': 16.25})
-        sched_line_obj.write({'hour_end': 17.50})
+
+        # Can't update hour_end to less than or equal to hour_start.
+        values = {'hour_end': 9}
+        with self.assertRaises(except_orm) as ex:
+            self.sched_line_obj.write(cr, uid, [sched_line_obj.id], values)
+        # Validate all is allowed after appt is removed/canceled.
+        sched_line_obj.write({'hour_start': 13.25})
+        sched_line_obj.write({'hour_end': 13.50})
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
-        self.assertTrue(sched_line_obj.hour_start == 16.25)
-        self.assertTrue(sched_line_obj.hour_end == 17.50)
+        self.assertTrue(sched_line_obj.hour_start == 13.25)
+        self.assertTrue(sched_line_obj.hour_end == 13.50)
         sched_line_obj.unlink()
