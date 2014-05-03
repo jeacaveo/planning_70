@@ -125,6 +125,7 @@
             <field name="arch" type="xml">
                 <form string="Espacios">
                     <field name="name" />
+                    <field name="time_efficiency" />
                 </form>
             </field>
         </record>
