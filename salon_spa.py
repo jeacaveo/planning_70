@@ -774,9 +774,11 @@ class schedule_line(Model):
         id = super(schedule_line, self).create(cr, uid, vals, context)
 
         # Create lunch break
-        time_float = (hour_end + hour_start) / 2
-        hours = int(time_float)
-        minutes = (time_float - hours) * 60
+        time_float = (hour_end + hour_start) / 2.0
+        # TODO fix timezone problem
+        time_tz = time_float + 4
+        hours = int(time_tz)
+        minutes = int((time_tz - hours) * 60)
         time_str = str(time(hour=hours, minute=minutes))
         start = sched_obj.date + ' ' + time_str
         client_id = self.pool.get('res.partner').\
