@@ -471,7 +471,8 @@ class appointment(resource_planning, base_state, Model):
             for line in sched_obj[0].schedule_line_ids:
                 if line.employee_id.id == employee_id:
                     if appt_start_hour >= line.hour_start \
-                        and appt_end_hour <= line.hour_end:
+                        and appt_end_hour <= line.hour_end \
+                        and not line.missing:
                         return True
         return False
 
