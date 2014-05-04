@@ -173,3 +173,59 @@ class TestSchedule(common.TransactionCase):
         self.assertTrue(sched_line_obj.hour_start == 17.25)
         self.assertTrue(sched_line_obj.hour_end == 17.50)
         sched_line_obj.unlink()
+
+    def testScheduleMissingEmployee(self):
+        """
+        Check if when an employee is marked as missing, it won't allow 
+        creating apppointments with that employee.
+        
+        """
+
+        # Create schedule and schedule line
+        cr, uid = self.cr, self.uid
+        sched_obj = self.sched_obj.browse(cr, uid, self.sched_id)
+        values = {'employee_id': 25, 'hour_start': 9, 'hour_end': 17, 'schedule_id': sched_obj.id}
+        sched_line_id = self.sched_line_obj.create(cr, uid, values)
+        sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
+
+        # Cancel auto-created lunch break.
+        date = datetime.strptime(sched_obj.date, "%Y-%m-%d")
+        day_start, day_end = self._day_start_end_time(str(date))
+        appt_ids = self.appt_obj.search(cr, uid, [('employee_id', '=', sched_line_obj.employee_id.id),
+                                                  ('start', '>=', day_start),
+                                                  ('start', '<=', day_end),
+                                                  ])
+        appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
+        appt_obj.case_cancel()
+
+        # Mark employee as missing
+        sched_line_obj.write({'missing': True})
+
+        # Attempt to create appointment
+        client_id = 68
+        # TODO fix timezone problem (this time is actually 10:00)
+        start = '2000-01-01 14:00:00'
+        service_id =  25
+        employee_id = sched_line_obj.employee_id.id
+        with self.assertRaises(except_orm) as ex:
+            self.appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                            client_id,
+                                            start,
+                                            service_id,
+                                            employee_id=employee_id,
+                                            context={'tz': 'America/Santo_Domingo',
+                                                     'start_date': start})
+
+        # Mark employee as not missing
+        sched_line_obj.write({'missing': False})
+
+        # Create appointment
+        self.appt_id = self.create_appt(cr, uid, self.appt_obj,
+                                        client_id,
+                                        start,
+                                        service_id,
+                                        employee_id=employee_id,
+                                        context={'tz': 'America/Santo_Domingo',
+                                                 'start_date': start})
+        appt_obj = self.appt_obj.browse(cr, uid, self.appt_id)
+        self.assertTrue(appt_obj.id)
