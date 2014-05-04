@@ -8,7 +8,7 @@ openerp.salon_spa = function(instance){
             this.unit_resource_field = '';
             this.resource_fields={};
             this.first_load = true;  // TODO undo force
-            // key = salon.spa.appointment category_id
+            // key = salon.spa.appointment state
             this.color_map = {'draft': '#D3D3D3',
                               'pending': '#FF7400',
                               'open': '#269926',
