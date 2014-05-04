@@ -61,6 +61,7 @@
         'product/product_view.xml',
         'res_partner/res_partner_view.xml',
         'point_of_sale/point_of_sale_view.xml',
+        'account/account_view.xml',
     ],
     "js": [
         'static/src/js/salon_spa.js',
