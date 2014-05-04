@@ -9,7 +9,12 @@ openerp.salon_spa = function(instance){
             this.resource_fields={};
             this.first_load = true;  // TODO undo force
             // key = salon.spa.appointment category_id
-            this.color_map = {'1': '#C0C0C0'}; 
+            this.color_map = {'draft': '#D3D3D3',
+                              'pending': '#FF7400',
+                              'open': '#269926',
+                              'done': '#009999',
+                              'cancel': '#FF4040',
+                }; 
             return this
         },
         events_loaded: function(events, fn_filter, no_filter_reload) {
