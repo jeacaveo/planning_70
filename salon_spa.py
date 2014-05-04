@@ -290,11 +290,29 @@ class appointment(resource_planning, base_state, Model):
         return True
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        """
+        Get all uninvoiced pos.orders for a client_id/date.
+
+        """
+
         day_start, day_end = self._day_start_end_time(date)
         return self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
                                  ('state', '!=', 'invoiced'),
+                                 ('partner_id', '=', client_id)],
+                       context=context)
+
+    def _get_all_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        """
+        Get all pos.orders for a client_id/date.
+
+        """
+
+        day_start, day_end = self._day_start_end_time(date)
+        return self.pool.get('pos.order').\
+                search(cr, uid, [('date_order', '>=', day_start),
+                                 ('date_order', '<=', day_end),
                                  ('partner_id', '=', client_id)],
                        context=context)
 
@@ -398,7 +416,7 @@ class appointment(resource_planning, base_state, Model):
 
         # get orders for the client/day (of appointment)
         appt_obj = self.browse(cr, uid, ids, context=context)[0]
-        order_ids = self._get_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
+        order_ids = self._get_all_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
         result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
 
         # change to form view if theirs only one order for the client/day
