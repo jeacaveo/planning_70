@@ -38,37 +38,36 @@ class appointment(resource_planning, base_state, Model):
     _duration_field = 'duration'
 
     _columns = {
-            'name': fields.char('Nombre', size=128),
-            'start': fields.datetime('Inicio', required=True),
-            'duration': fields.float(u'Duración', required=True),
-            'price': fields.float(u'Precio'),
+            'name': fields.char('Name', size=128),
+            'start': fields.datetime('Start', required=True),
+            'duration': fields.float(u'Duration', required=True),
+            'price': fields.float(u'Price'),
             'employee_id': fields.many2one(
-                'hr.employee', 'Empleado', required=True),
+                'hr.employee', 'Employee', required=True),
             'client_id': fields.many2one(
-                'res.partner', 'Cliente',
+                'res.partner', 'Client',
                 domain=[('supplier', '=', False)], required=True,),
             'service_id': fields.many2one(
-                'salon.spa.service', 'Servicio', required=True),
+                'salon.spa.service', 'Service', required=True),
             'space_id': fields.many2one(
-                'salon.spa.space', 'Espacio', required=True),
-            'state': fields.selection([('draft', 'Reservada'),
-                                       ('pending', 'En Espera'),
-                                       ('open', 'Confirmada'),
-                                       ('done', 'Concluida'),
-                                       ('cancel', 'Cancelada')],
+                'salon.spa.space', 'Space', required=True),
+            'state': fields.selection([('draft', 'Draft'),
+                                       ('pending', 'Pending'),
+                                       ('open', 'Confirmed'),
+                                       ('done', 'Done'),
+                                       ('cancel', 'Cancelled')],
                                        string='Estado', size=16, readonly=True,
                                        track_visibility='onchange',
-                                       help="Este estado marca la cita como:\
-                                             'Reservada' cuando se crea.\
-                                             'En Espera' el dia de la cita,\
-                                             y el cliente no ha llegado.\
-                                             'Confirmada' el cliente llego.\
-                                             'Concluida' la cita concluida.\
-                                             'Cancelada' no-show, etc."),
-            'notes': fields.text('Notas'),
-            'active': fields.boolean('Activo', required=False),
+                                       help="This state makes the appointment:\
+                                             'Draft' When creating or break.\
+                                             'Pending' Reserved, but client hasn't arrived.\
+                                             'Confirmed' Client has arrived.\
+                                             'Done' Appointment was paid/invoiced.\
+                                             'Cancelled' Client cancelled, no-show, etc."),
+            'notes': fields.text('Notes'),
+            'active': fields.boolean('Active', required=False),
             'order_line_id': fields.many2one(
-                'pos.order.line', 'Registro de Venta')
+                'pos.order.line', 'POS Order Line')
             }
 
     def _last_appointment_client(self, cr, uid, context=None):
@@ -347,7 +346,7 @@ class appointment(resource_planning, base_state, Model):
                     'parent_return_order': '',
                     }, context=context)
             else:
-                raise except_orm(_('Error'), _('No cashbox available.'))
+                raise except_orm(_('Error'), _('No cashbox available/open for this user.'))
         # add service to order
         order_line_id = self.pool.get('pos.order.line').create(cr, uid, {
                         'order_id': order_id,
@@ -648,17 +647,17 @@ class service(Model):
     _columns = {
             'service': fields.many2one(
                 'product.product',
-                'Nombre',
+                'Name',
                 domain=[('type', '=', 'service')],
                 required=True),
-            'duration': fields.float('Tiempo', required=True),
-            'categ_id': fields.char('Categoria', required=True),
-            'instructions': fields.text('Instrucciones', translate=True),
+            'duration': fields.float('Time', required=True),
+            'categ_id': fields.char('Category', required=True),
+            'instructions': fields.text('Instructions', translate=True),
             'space_ids': fields.many2many(
                 'salon.spa.space',
                 'service_space_rel',
                 'service_id', 'space_id',
-                'Espacios Permitidos'),
+                'Allowed Spaces'),
             }
 
     _defaults = {
