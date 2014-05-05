@@ -38,37 +38,36 @@ class appointment(resource_planning, base_state, Model):
     _duration_field = 'duration'
 
     _columns = {
-            'name': fields.char('Nombre', size=128),
-            'start': fields.datetime('Inicio', required=True),
-            'duration': fields.float(u'Duración', required=True),
-            'price': fields.float(u'Precio'),
+            'name': fields.char('Name', size=128),
+            'start': fields.datetime('Start', required=True),
+            'duration': fields.float(u'Duration', required=True),
+            'price': fields.float(u'Price'),
             'employee_id': fields.many2one(
-                'hr.employee', 'Empleado', required=True),
+                'hr.employee', 'Employee', required=True),
             'client_id': fields.many2one(
-                'res.partner', 'Cliente',
+                'res.partner', 'Client',
                 domain=[('supplier', '=', False)], required=True,),
             'service_id': fields.many2one(
-                'salon.spa.service', 'Servicio', required=True),
+                'salon.spa.service', 'Service', required=True),
             'space_id': fields.many2one(
-                'salon.spa.space', 'Espacio', required=True),
-            'state': fields.selection([('draft', 'Reservada'),
-                                       ('pending', 'En Espera'),
-                                       ('open', 'Confirmada'),
-                                       ('done', 'Concluida'),
-                                       ('cancel', 'Cancelada')],
+                'salon.spa.space', 'Space', required=True),
+            'state': fields.selection([('draft', 'Draft'),
+                                       ('pending', 'Pending'),
+                                       ('open', 'Confirmed'),
+                                       ('done', 'Done'),
+                                       ('cancel', 'Cancelled')],
                                        string='Estado', size=16, readonly=True,
                                        track_visibility='onchange',
-                                       help="Este estado marca la cita como:\
-                                             'Reservada' cuando se crea.\
-                                             'En Espera' el dia de la cita,\
-                                             y el cliente no ha llegado.\
-                                             'Confirmada' el cliente llego.\
-                                             'Concluida' la cita concluida.\
-                                             'Cancelada' no-show, etc."),
-            'notes': fields.text('Notas'),
-            'active': fields.boolean('Activo', required=False),
+                                       help="This state makes the appointment:\
+                                             'Draft' When creating or break.\
+                                             'Pending' Reserved, but client hasn't arrived.\
+                                             'Confirmed' Client has arrived.\
+                                             'Done' Appointment was paid/invoiced.\
+                                             'Cancelled' Client cancelled, no-show, etc."),
+            'notes': fields.text('Notes'),
+            'active': fields.boolean('Active', required=False),
             'order_line_id': fields.many2one(
-                'pos.order.line', 'Registro de Venta')
+                'pos.order.line', 'POS Order Line')
             }
 
     def _last_appointment_client(self, cr, uid, context=None):
@@ -269,14 +268,13 @@ class appointment(resource_planning, base_state, Model):
 
     def _validate_past_date(self, date):
         if self._to_datetime(date) < datetime.today():
-            raise except_orm(_('Error'), _("Can't create an event in the past."))
+            raise except_orm(_('Error'), _("No se puede crear un evento en el pasado."))
         return True
 
     def _raise_unavailable(self, cr, uid, model, ids, context=None):
         model_obj = self.pool.get(model).\
                 browse(cr, uid, ids, context=context)
-        raise except_orm(_('Error'), _('%s is not '
-            'available at this time!') % (
+        raise except_orm(_('Error'), _('%s no esta disponible en este horario!') % (
             model_obj.name))
 
     def _check_client_available(self, cr, uid, ids, client_id, start_date, duration, context):
@@ -290,11 +288,29 @@ class appointment(resource_planning, base_state, Model):
         return True
 
     def _get_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        """
+        Get all uninvoiced pos.orders for a client_id/date.
+
+        """
+
         day_start, day_end = self._day_start_end_time(date)
         return self.pool.get('pos.order').\
                 search(cr, uid, [('date_order', '>=', day_start),
                                  ('date_order', '<=', day_end),
                                  ('state', '!=', 'invoiced'),
+                                 ('partner_id', '=', client_id)],
+                       context=context)
+
+    def _get_all_order_ids_client_day(self, cr, uid, client_id, date, context=None):
+        """
+        Get all pos.orders for a client_id/date.
+
+        """
+
+        day_start, day_end = self._day_start_end_time(date)
+        return self.pool.get('pos.order').\
+                search(cr, uid, [('date_order', '>=', day_start),
+                                 ('date_order', '<=', day_end),
                                  ('partner_id', '=', client_id)],
                        context=context)
 
@@ -329,7 +345,7 @@ class appointment(resource_planning, base_state, Model):
                     'parent_return_order': '',
                     }, context=context)
             else:
-                raise except_orm(_('Error'), _('No cashbox available.'))
+                raise except_orm(_('Error'), _('No existe una caja disponible/abierta para este usuario.'))
         # add service to order
         order_line_id = self.pool.get('pos.order.line').create(cr, uid, {
                         'order_id': order_id,
@@ -366,7 +382,7 @@ class appointment(resource_planning, base_state, Model):
             appt_obj.case_open()
             if not self._create_update_order_client_day(cr, uid,\
                     appt_obj.client_id.id, appt_obj.start, appt_id, appt_obj.service_id, context):
-                raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
+                raise except_orm(_('Error'), _('Error al crear/actualizar la factura (pos.order o pos.order.line).'))
         return True
 
     def action_cancel(self, cr, uid, ids, context=None):
@@ -398,7 +414,7 @@ class appointment(resource_planning, base_state, Model):
 
         # get orders for the client/day (of appointment)
         appt_obj = self.browse(cr, uid, ids, context=context)[0]
-        order_ids = self._get_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
+        order_ids = self._get_all_order_ids_client_day(cr, uid, appt_obj.client_id.id, appt_obj.start, context)
         result['domain'] = "[('id','=',[" + ','.join(map(str, order_ids)) + "])]"
 
         # change to form view if theirs only one order for the client/day
@@ -487,7 +503,7 @@ class appointment(resource_planning, base_state, Model):
             appt_obj = self.pool.get('salon.spa.appointment').\
                     browse(cr, uid, appt_id, context=context)
             if appt_obj.state == 'done':
-                raise except_orm(_('Error'), _("Appointment is done/paid, it can't be deleted."))
+                raise except_orm(_('Error'), _("La cita fue concluida/pagada, no puede ser eliminada."))
         return super(appointment, self).unlink(cr, uid, ids, context)
 
     def write(self, cr, uid, ids, vals, context=None):
@@ -499,9 +515,9 @@ class appointment(resource_planning, base_state, Model):
 
         # 'done' and 'cancel' appointments mustn't be modified
         if appt_obj.state == 'done':
-            raise except_orm(_('Error'), _("Appointment is done/paid, it can't be modified."))
+            raise except_orm(_('Error'), _("La cita fue concluida/pagada, no puede ser modificada."))
         elif appt_obj.state == 'cancel':
-            raise except_orm(_('Error'), _("Appointment was cancelled, it can't be modified."))
+            raise except_orm(_('Error'), _("La cita fue cancelada, no puede ser modificada."))
 
         prev_appt = {'employee_id': appt_obj.employee_id.id,
                      'start': appt_obj.start,
@@ -544,8 +560,7 @@ class appointment(resource_planning, base_state, Model):
             for service in employee_obj.service_ids:
                 service_ids.append(service.id)
             if current_appt['service_id'] not in service_ids:
-                raise except_orm(_('Error'), _('%s is not '
-                    'assigned to work with %s!') % (
+                raise except_orm(_('Error'), _('%s no esta asignado(a) para trabajar con %s!') % (
                     employee_obj.name,
                     service_obj.service.name))
             if not self.check_resource_availability(cr, uid, ids,
@@ -587,9 +602,9 @@ class appointment(resource_planning, base_state, Model):
                 del_order_line = self.pool.get('pos.order.line').\
                         unlink(cr, uid, order_line_obj[0], context=context)
                 if not del_order_line:
-                    raise except_orm(_('Error'), _('Error removing pos.order.line.'))
+                    raise except_orm(_('Error'), _('Error removiendo detalle de factura (pos.order.line).'))
                 if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context):
-                    raise except_orm(_('Error'), _('Error creating/updating pos.order or pos.order.line.'))
+                    raise except_orm(_('Error'), _('Error al crear/actualizar la factura (pos.order o pos.order.line).'))
         return result
 
     def create(self, cr, uid, vals, context=None):
@@ -630,17 +645,17 @@ class service(Model):
     _columns = {
             'service': fields.many2one(
                 'product.product',
-                'Nombre',
+                'Name',
                 domain=[('type', '=', 'service')],
                 required=True),
-            'duration': fields.float('Tiempo', required=True),
-            'categ_id': fields.char('Categoria', required=True),
-            'instructions': fields.text('Instrucciones', translate=True),
+            'duration': fields.float('Time', required=True),
+            'categ_id': fields.char('Category', required=True),
+            'instructions': fields.text('Instructions', translate=True),
             'space_ids': fields.many2many(
                 'salon.spa.space',
                 'service_space_rel',
                 'service_id', 'space_id',
-                'Espacios Permitidos'),
+                'Allowed Spaces'),
             }
 
     _defaults = {
@@ -683,7 +698,7 @@ class schedule(Model):
 
     def create(self, cr, uid, vals, context=None):
         if self.pool.get('salon.spa.schedule').search(cr, uid, [('date', '=', vals.get('date'))], context=context):
-            raise except_orm(_('Error'), _("Can't create schedule with this date. Duplicate exists."))
+            raise except_orm(_('Error'), _("No puede crear un horario para esta fecha. Existe duplicidad."))
         id = super(schedule, self).create(cr, uid, vals, context)
         return id
 
@@ -691,7 +706,7 @@ class schedule(Model):
         if vals.get('date')\
             and self.pool.get('salon.spa.schedule').\
                     search(cr, uid, [('date', '=', vals.get('date'))], context=context):
-            raise except_orm(_('Error'), _("Can't change schedule to this date. Duplicate exists."))
+            raise except_orm(_('Error'), _("No puede cambiar el horario a esta fecha. Existe duplicidad."))
         result = super(schedule, self).write(cr, uid, ids, vals, context)
         return result
 
@@ -754,7 +769,7 @@ class schedule_line(Model):
 
     def _validate_start_end(self, hour_start, hour_end):
         if hour_end <= hour_start:
-            raise except_orm(_('Error'), _("Ending time is greater or equal to starting time, please fix."))
+            raise except_orm(_('Error'), _("Fecha fin es mayor o igual a la fecha de inicio, favor corregir."))
         return True
 
     def create(self, cr, uid, vals, context=None):
@@ -770,7 +785,7 @@ class schedule_line(Model):
         sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
         if sched_obj.hour_start > hour_start\
                 or sched_obj.hour_end < hour_end:
-            raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't create."))
+            raise except_orm(_('Error'), _("Tiempos de inicio y/o fin estan fuera de los valores permitidos para esta fecha/horario. Imposible crear."))
         # Create schedule.line before appointment
         id = super(schedule_line, self).create(cr, uid, vals, context)
 
@@ -824,7 +839,7 @@ class schedule_line(Model):
             sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
             if (hour_start and sched_obj.hour_start > hour_start)\
                 or (hour_end and sched_obj.hour_end < hour_end):
-                raise except_orm(_('Error'), _("Start and/or end times are outside of allowed values. Can't update."))
+                raise except_orm(_('Error'), _("Tiempos de inicio y/o fin estan fuera de los valores permitidos para esta fecha/horario. Imposible actualizar."))
 
             date = datetime.strptime(sched_obj.date, '%Y-%m-%d')
             start_time, end_time = self._range_start_end_time(str(date),
@@ -832,8 +847,8 @@ class schedule_line(Model):
                                                             int(sched_line_obj.hour_end))
             appt_ids = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
             if appt_ids and missing:
-                raise except_orm(_('Error'), _("An employee reported as missing has existing appointment(s) for this day,"
-                                               " please cancel or move the appointment(s) before saving."))
+                raise except_orm(_('Error'), _("Un empleado reportado como 'Libre' tiene cita(s) asignada(s) para esta fecha,"
+                                               " favor cancelar o mover las cita(s) antes de continuar."))
             for appt_id in appt_ids:
                 appt_obj = self.pool.get('salon.spa.appointment').browse(cr, uid, appt_id, context=context)
                 appt_start = self._to_datetime(appt_obj.start)
@@ -842,7 +857,7 @@ class schedule_line(Model):
                 appt_end = appt_end.hour + (float(appt_end.minute) / 60)  # float format
                 if (hour_start and appt_start < hour_start)\
                     or (hour_end and appt_end > hour_end):
-                    raise except_orm(_('Error'), _("Start or end time is outside of allowed values. Can't update."))
+                    raise except_orm(_('Error'), _("Tiempos de inicio y/o fin estan fuera de los valores permitidos para esta fecha/horario. Imposible actualizar."))
 
         result = super(schedule_line, self).write(cr, uid, ids, vals, context)
         return result
@@ -863,6 +878,6 @@ class schedule_line(Model):
                                                         int(hour_end))
         appt_exists = self._get_appointments_in_range(cr, uid, sched_line_obj.employee_id.id, start_time, end_time, context=context)
         if appt_exists:
-            raise except_orm(_('Error'), _("A schedule was removed for an employee with appointment(s) assign,"
-                                           " please cancel or remove the appointment(s) before deleting."))
+            raise except_orm(_('Error'), _("Se esta intentando eliminar el horario de un empleado que tiene cita(s) asignada(s) para esta fecha,"
+                                           " favor cancelar o mover las cita(s) antes de continuar."))
         return super(schedule_line, self).unlink(cr, uid, ids, context)

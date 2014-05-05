@@ -18,9 +18,10 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import salon_spa
-import account
-import hr_employee
-import product
-import res_partner
-import point_of_sale
+from openerp.osv import osv
+
+
+class account_bank_statement_line(osv.osv):
+    _inherit = 'account.bank.statement.line'
+
+    _order = 'type, name, date'
