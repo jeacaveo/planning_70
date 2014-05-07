@@ -649,7 +649,6 @@ class service(Model):
                 domain=[('type', '=', 'service')],
                 required=True),
             'duration': fields.float('Time', required=True),
-            'categ_id': fields.char('Category', required=True),
             'instructions': fields.text('Instructions', translate=True),
             'space_ids': fields.many2many(
                 'salon.spa.space',
@@ -668,7 +667,6 @@ class service(Model):
                     browse(cr, uid, service, context=context)
             return {'value':
                         {'name': product_obj.name,
-                         'categ_id': product_obj.categ_id.id,
                              }
                    }
         return {}
@@ -774,7 +772,8 @@ class schedule_line(Model):
 
     def create(self, cr, uid, vals, context=None):
         """
-        Modified to add validation to avoid assigning start/end outside schedule range.
+        Modified to add validation to avoid assigning start/end outside schedule range,
+        and to create a lunch appointment.
 
         """
 

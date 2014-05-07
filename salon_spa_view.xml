@@ -92,7 +92,6 @@
                     <field name="service" on_change="onchange_service_service(service)" />
                     <field name="name" invisible="True" />
                     <field name="duration" widget="float_time" />
-                    <field name="categ_id" invisible="True" />
                     <notebook colspan="4">
                         <page string='Instructions'>
                             <field name='instructions' colspan='4' nolabel='1' placeholder="Notes and Observations." />
