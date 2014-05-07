@@ -20,7 +20,7 @@
 ##############################################################################
 {
     "name" : "Planning",
-    "version" : "0.5.0",
+    "version" : "0.5.1",
     "author" : "Ventura Systems",
     "licence": "AGPL v3",
     "complexity": "normal",
