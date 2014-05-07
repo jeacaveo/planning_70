@@ -1,8 +1,8 @@
 <openerp>
     <data>
         <!-- Employees form view -->
-        <record id="salon_spa_employee_services_view_form" model="ir.ui.view">
-            <field name="name">salon.spa.employee.services.view.form</field>
+        <record id="planning_employee_services_view_form" model="ir.ui.view">
+            <field name="name">planning.employee.services.view.form</field>
             <field name="model">hr.employee</field>
             <field name="inherit_id" ref="hr.view_employee_form"/>
             <field name="arch" type="xml">

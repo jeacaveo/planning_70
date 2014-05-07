@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import salon_spa
+import planning
 import account
 import hr_employee
 import product

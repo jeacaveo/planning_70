@@ -1,8 +1,8 @@
 <openerp>
     <data>
         <!-- Product normal form view -->
-        <record id="salon_spa_product_normal_form_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.normal.form.view</field>
+        <record id="planning_product_normal_form_view" model="ir.ui.view">
+            <field name="name">planning.product.normal.form.view</field>
             <field name="model">product.product</field>
             <field name="inherit_id" ref="product.product_normal_form_view"/>
             <field name="arch" type="xml">
@@ -12,8 +12,8 @@
             </field>
         </record>
         <!-- Supplier Product form view -->
-        <record id="salon_spa_product_supplierinfo_form_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.supplierinfo.form.view</field>
+        <record id="planning_product_supplierinfo_form_view" model="ir.ui.view">
+            <field name="name">planning.product.supplierinfo.form.view</field>
             <field name="model">product.supplierinfo</field>
             <field name="inherit_id" ref="product.product_supplierinfo_form_view"/>
             <field name="arch" type="xml">
@@ -24,8 +24,8 @@
             </field>
         </record>
         <!-- Supplier Product tree view -->
-        <record id="salon_spa_product_product_tree_view" model="ir.ui.view">
-            <field name="name">salon.spa.product.product.tree.view</field>
+        <record id="planning_product_product_tree_view" model="ir.ui.view">
+            <field name="name">planning.product.product.tree.view</field>
             <field name="model">product.product</field>
             <field name="type">form</field>
             <field name="inherit_id" ref="product.product_product_tree_view"/>

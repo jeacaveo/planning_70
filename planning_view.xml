@@ -2,9 +2,9 @@
     <data>
         <!-- Appointment -->
         <!-- Appointment calendar view -->
-        <record id="salon_spa_appointment_calendar" model="ir.ui.view">
-            <field name="name">salon.spa.appointment.calendar</field>
-            <field name="model">salon.spa.appointment</field>
+        <record id="planning_appointment_calendar" model="ir.ui.view">
+            <field name="name">planning.appointment.calendar</field>
+            <field name="model">planning.appointment</field>
             <field name="type">calendar</field>
             <field name="arch" type="xml">
                 <calendar string="Appointments" color="state" date_start="start" date_delay="duration" mode="day">
@@ -17,9 +17,9 @@
             </field>
         </record>
         <!-- Appointment form view -->
-        <record id="salon_spa_appointment_form" model="ir.ui.view">
-            <field name="name">salon.spa.appointment.form</field>
-            <field name="model">salon.spa.appointment</field>
+        <record id="planning_appointment_form" model="ir.ui.view">
+            <field name="name">planning.appointment.form</field>
+            <field name="model">planning.appointment</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Appointments" version="7.0">
@@ -52,9 +52,9 @@
             </field>
         </record>
         <!-- Appointment tree view -->
-        <record id="salon_spa_appointment_tree" model="ir.ui.view">
-            <field name="name">salon.spa.appointment.tree</field>
-            <field name="model">salon.spa.appointment</field>
+        <record id="planning_appointment_tree" model="ir.ui.view">
+            <field name="name">planning.appointment.tree</field>
+            <field name="model">planning.appointment</field>
             <field name="arch" type="xml">
                 <tree string="Appointments">
                     <field name="start" />
@@ -83,9 +83,9 @@
 
         <!-- Service -->
         <!-- Service form view -->
-        <record id="salon_spa_service_form" model="ir.ui.view">
-            <field name="name">salon.spa.service.form</field>
-            <field name="model">salon.spa.service</field>
+        <record id="planning_service_form" model="ir.ui.view">
+            <field name="name">planning.service.form</field>
+            <field name="model">planning.service</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Services">
@@ -104,9 +104,9 @@
             </field>
         </record>
         <!-- Service tree view -->
-        <record id="salon_spa_service_tree" model="ir.ui.view">
-            <field name="name">salon.spa.service.tree</field>
-            <field name="model">salon.spa.service</field>
+        <record id="planning_service_tree" model="ir.ui.view">
+            <field name="name">planning.service.tree</field>
+            <field name="model">planning.service</field>
             <field name="arch" type="xml">
                 <tree string="Services">
                     <field name="service" />
@@ -117,9 +117,9 @@
 
         <!-- Space-->
         <!-- Space form view -->
-        <record id="salon_spa_space_form" model="ir.ui.view">
-            <field name="name">salon.spa.space.form</field>
-            <field name="model">salon.spa.space</field>
+        <record id="planning_space_form" model="ir.ui.view">
+            <field name="name">planning.space.form</field>
+            <field name="model">planning.space</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Spaces">
@@ -129,9 +129,9 @@
             </field>
         </record>
         <!-- Space tree view -->
-        <record id="salon_spa_space_tree" model="ir.ui.view">
-            <field name="name">salon.spa.space.tree</field>
-            <field name="model">salon.spa.space</field>
+        <record id="planning_space_tree" model="ir.ui.view">
+            <field name="name">planning.space.tree</field>
+            <field name="model">planning.space</field>
             <field name="arch" type="xml">
                 <tree string="Spaces">
                     <field name="name" />
@@ -141,9 +141,9 @@
 
         <!-- Schedule -->
         <!-- Schedule form view -->
-        <record id="salon_spa_schedule_form" model="ir.ui.view">
-            <field name="name">salon.spa.schedule.form</field>
-            <field name="model">salon.spa.schedule</field>
+        <record id="planning_schedule_form" model="ir.ui.view">
+            <field name="name">planning.schedule.form</field>
+            <field name="model">planning.schedule</field>
             <field name="type">form</field>
             <field name="arch" type="xml">
                 <form string="Schedule">
@@ -170,9 +170,9 @@
             </field>
         </record>
         <!-- Schedule tree view -->
-        <record id="salon_spa_schedule_tree" model="ir.ui.view">
-            <field name="name">salon.spa.schedule.tree</field>
-            <field name="model">salon.spa.schedule</field>
+        <record id="planning_schedule_tree" model="ir.ui.view">
+            <field name="name">planning.schedule.tree</field>
+            <field name="model">planning.schedule</field>
             <field name="arch" type="xml">
                 <tree string="Schedules">
                     <field name="date" />
@@ -184,7 +184,7 @@
         <act_window
             id="action_appointment"
             name="Appointments"
-            res_model="salon.spa.appointment"
+            res_model="planning.appointment"
             view_type="form"
             view_mode="calendar,tree,form" />
         <act_window
@@ -199,7 +199,7 @@
         <act_window
             id="action_schedule"
             name="Schedules"
-            res_model="salon.spa.schedule"
+            res_model="planning.schedule"
             view_type="form"
             view_mode="tree,form" />
         <act_window
@@ -211,18 +211,18 @@
         <act_window
             id="action_service"
             name="Services"
-            res_model="salon.spa.service"
+            res_model="planning.service"
             view_type="form"
             view_mode="tree,form" />
         <act_window
             id="action_space"
             name="Spaces"
-            res_model="salon.spa.space"
+            res_model="planning.space"
             view_type="form"
             view_mode="tree,form" />
 
 
-        <menuitem id="menu_root" name="Salon and Spa" />
+        <menuitem id="menu_root" name="Planning" />
             <menuitem id="menu_planning" name="Planning" parent="menu_root" sequence="1" />
                 <menuitem id="menu_appointment" action="action_appointment" parent="menu_planning" sequence="1"/>
                 <menuitem id="menu_checkout" action="action_checkout" parent="menu_planning" sequence="2"/>

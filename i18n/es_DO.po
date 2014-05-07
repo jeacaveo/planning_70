@@ -1,6 +1,6 @@
-# Translation of OpenERP Server.
+﻿# Translation of OpenERP Server.
 # This file contains the translation of the following modules:
-#	* salon_spa
+#	* planning
 #
 msgid ""
 msgstr ""
@@ -15,447 +15,447 @@ msgstr ""
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
 
-#. module: salon_spa
-#: field:salon.spa.service,categ_id:0
+#. module: planning
+#: field:planning.service,categ_id:0
 msgid "Category"
-msgstr "Categoria"
+msgstr "Categoría"
 
-#. module: salon_spa
-#: field:salon.spa.schedule,hour_start:0
-#: field:salon.spa.schedule.line,hour_start:0
+#. module: planning
+#: field:planning.schedule,hour_start:0
+#: field:planning.schedule.line,hour_start:0
 msgid "Starting Hour"
 msgstr "Hora Inicial"
 
-#. module: salon_spa
-#: selection:salon.spa.appointment,state:0
+#. module: planning
+#: selection:planning.appointment,state:0
 msgid "Confirmed"
 msgstr "Confirmada"
 
-#. module: salon_spa
-#: help:salon.spa.service,time_efficiency:0
-#: help:salon.spa.space,time_efficiency:0
+#. module: planning
+#: help:planning.service,time_efficiency:0
+#: help:planning.space,time_efficiency:0
 msgid "This field depict the efficiency of the resource to complete tasks. e.g  resource put alone on a phase of 5 days with 5 tasks assigned to him, will show a load of 100% for this phase by default, but if we put a efficiency of 200%, then his load will only be 50%."
-msgstr "Este campo muestra la eficiencia del recurso para completar tareas. Ej.: un recurso que se coloca en una fase de 5 dias con 5 tareas asignadas a el, por defecto mostrara una carga de 100% en esta fase, pero si ponemos una eficiencia de 200%, entoences esta carga seria solamente de 50%.."
+msgstr "Este campo muestra la eficiencia del recurso para completar tareas. Ej.: un recurso que se coloca en una fase de 5 días con 5 tareas asignadas a el, por defecto mostrara una carga de 100% en esta fase, pero si ponemos una eficiencia de 200%, entonces esta carga seria solamente de 50%.."
 
-#. module: salon_spa
+#. module: planning
 #: field:res.partner,reference_used:0
 msgid "Rerefence Used"
 msgstr "Referencia Utilizada"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,service_id:0
+#. module: planning
+#: field:planning.appointment,service_id:0
 msgid "Service"
 msgstr "Servicio"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,space_id:0
+#. module: planning
+#: field:planning.appointment,space_id:0
 msgid "Space"
 msgstr "Espacio"
 
-#. module: salon_spa
-#: view:salon.spa.service:0
-#: field:salon.spa.service,space_ids:0
+#. module: planning
+#: view:planning.service:0
+#: field:planning.service,space_ids:0
 msgid "Allowed Spaces"
 msgstr "Espacios Permitidos"
 
-#. module: salon_spa
-#: field:salon.spa.service,calendar_id:0
-#: field:salon.spa.space,calendar_id:0
+#. module: planning
+#: field:planning.service,calendar_id:0
+#: field:planning.space,calendar_id:0
 msgid "Working Time"
 msgstr "Horario Laborable"
 
-#. module: salon_spa
-#: view:salon.spa.schedule:0
+#. module: planning
+#: view:planning.schedule:0
 msgid "Schedule Detail"
 msgstr "Detalle de Horario"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,order_line_id:0
+#. module: planning
+#: field:planning.appointment,order_line_id:0
 msgid "POS Order Line"
 msgstr "Linea de TPV"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,start:0
+#. module: planning
+#: field:planning.appointment,start:0
 msgid "Start"
 msgstr "Inicio"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_salon_spa_schedule_line
-msgid "salon.spa.schedule.line"
-msgstr "salon.spa.schedule.line"
+#. module: planning
+#: model:ir.model,name:planning.model_planning_schedule_line
+msgid "planning.schedule.line"
+msgstr "planning.schedule.line"
 
-#. module: salon_spa
-#: selection:salon.spa.appointment,state:0
+#. module: planning
+#: selection:planning.appointment,state:0
 msgid "Draft"
 msgstr "Borrador"
 
-#. module: salon_spa
-#: view:salon.spa.appointment:0
+#. module: planning
+#: view:planning.appointment:0
 msgid "Check In"
 msgstr "En espera"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_hr_employee
-#: field:salon.spa.appointment,employee_id:0
-#: field:salon.spa.schedule.line,employee_id:0
+#. module: planning
+#: model:ir.model,name:planning.model_hr_employee
+#: field:planning.appointment,employee_id:0
+#: field:planning.schedule.line,employee_id:0
 msgid "Employee"
 msgstr "Empleado"
 
-#. module: salon_spa
+#. module: planning
 #: view:pos.order:0
 msgid "New"
 msgstr "Nuevo"
 
-#. module: salon_spa
-#: help:salon.spa.appointment,state:0
+#. module: planning
+#: help:planning.appointment,state:0
 msgid "This state makes the appointment:                                             'Draft' When creating or break.                                             'Pending' Reserved, but client hasn't arrived.                                             'Confirmed' Client has arrived.                                             'Done' Appointment was paid/invoiced.                                             'Cancelled' Client cancelled, no-show, etc."
 msgstr "Este estado marca la cita como:                                             'Borrador' Cuando se esta creando es un descanso.                                             'Pendiente' Reservada, pero el cliente aun no ha llegado.                                             'Confirmada' El cliente ha llegado.                                             'Concluida' La cita fue pagada/facturada.                                             'Cancelada' Cancelada o el cliente no se presento."
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_checkout
-#: model:ir.ui.menu,name:salon_spa.menu_checkout
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_checkout
+#: model:ir.ui.menu,name:planning.menu_checkout
 msgid "Checkout"
 msgstr "Caja"
 
-#. module: salon_spa
+#. module: planning
 #: view:pos.order:0
 msgid "Amount total"
 msgstr "Importe total"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,name:0
-#: field:salon.spa.service,name:0
-#: field:salon.spa.service,service:0
-#: field:salon.spa.space,name:0
+#. module: planning
+#: field:planning.appointment,name:0
+#: field:planning.service,name:0
+#: field:planning.service,service:0
+#: field:planning.space,name:0
 msgid "Name"
 msgstr "Nombre"
 
-#. module: salon_spa
-#: view:salon.spa.appointment:0
-#: view:salon.spa.service:0
+#. module: planning
+#: view:planning.appointment:0
+#: view:planning.service:0
 msgid "Notes and Observations."
 msgstr "Notas y Observaciones."
 
-#. module: salon_spa
+#. module: planning
 #: field:pos.order.line,appointment_id:0
 msgid "Appointment"
 msgstr "Cita"
 
-#. module: salon_spa
+#. module: planning
 #: field:res.partner,referrer_id:0
 msgid "Refered by"
 msgstr "Referido por"
 
-#. module: salon_spa
-#: field:salon.spa.schedule.line,missing:0
+#. module: planning
+#: field:planning.schedule.line,missing:0
 msgid "Missing"
 msgstr "Libre"
 
-#. module: salon_spa
+#. module: planning
 #: field:product.product,product_unit_equivalent:0
 #: field:product.supplierinfo,supplier_unit_equivalent:0
 msgid "Equivalencia de Unidad"
 msgstr "Equivalencia de Unidad"
 
-#. module: salon_spa
-#: field:salon.spa.service,company_id:0
-#: field:salon.spa.space,company_id:0
+#. module: planning
+#: field:planning.service,company_id:0
+#: field:planning.space,company_id:0
 msgid "Company"
-msgstr "Compania"
+msgstr "Compañia"
 
-#. module: salon_spa
-#: selection:salon.spa.service,resource_type:0
-#: selection:salon.spa.space,resource_type:0
+#. module: planning
+#: selection:planning.service,resource_type:0
+#: selection:planning.space,resource_type:0
 msgid "Material"
 msgstr "Material"
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_schedule
-#: model:ir.ui.menu,name:salon_spa.menu_schedule
-#: view:salon.spa.schedule:0
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_schedule
+#: model:ir.ui.menu,name:planning.menu_schedule
+#: view:planning.schedule:0
 msgid "Schedules"
 msgstr "Horarios"
 
-#. module: salon_spa
-#: field:salon.spa.schedule,hour_end:0
-#: field:salon.spa.schedule.line,hour_end:0
+#. module: planning
+#: field:planning.schedule,hour_end:0
+#: field:planning.schedule.line,hour_end:0
 msgid "Ending Hour"
 msgstr "Hora Final"
 
-#. module: salon_spa
+#. module: planning
 #: field:product.supplierinfo,supplier_unit_equivalent_name:0
 msgid "Nombre de Equivalencia"
 msgstr "Nombre de Equivalencia"
 
-#. module: salon_spa
+#. module: planning
 #: help:res.partner,referrer_id:0
 msgid "Another client that refered this client."
-msgstr "Otro cliente que refirio a este cliente."
+msgstr "Otro cliente que refirió a este cliente."
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_appointment
-#: model:ir.ui.menu,name:salon_spa.menu_appointment
-#: view:salon.spa.appointment:0
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_appointment
+#: model:ir.ui.menu,name:planning.menu_appointment
+#: view:planning.appointment:0
 msgid "Appointments"
 msgstr "Citas"
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_space
-#: model:ir.ui.menu,name:salon_spa.menu_space
-#: view:salon.spa.space:0
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_space
+#: model:ir.ui.menu,name:planning.menu_space
+#: view:planning.space:0
 msgid "Spaces"
 msgstr "Espacios"
 
-#. module: salon_spa
-#: selection:salon.spa.appointment,state:0
+#. module: planning
+#: selection:planning.appointment,state:0
 msgid "Pending"
 msgstr "En espera"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_product_supplierinfo
+#. module: planning
+#: model:ir.model,name:planning.model_product_supplierinfo
 msgid "Information about a product supplier"
-msgstr "Informacion sobre un proveedor de productos."
+msgstr "Información sobre un proveedor de productos."
 
-#. module: salon_spa
-#: field:salon.spa.schedule,date:0
+#. module: planning
+#: field:planning.schedule,date:0
 msgid "Date"
 msgstr "Fecha"
 
-#. module: salon_spa
-#: model:ir.module.category,name:salon_spa.module_category_salon_spa
-msgid "Salon Spa"
-msgstr "Salon Spa"
+#. module: planning
+#: model:ir.module.category,name:planning.module_category_planning
+msgid "Planning"
+msgstr "Planificación"
 
-#. module: salon_spa
-#: model:ir.ui.menu,name:salon_spa.menu_configuration
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_configuration
 msgid "Configuration"
 msgstr "Configuración"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,state:0
+#. module: planning
+#: field:planning.appointment,state:0
 msgid "Estado"
 msgstr "Estado"
 
-#. module: salon_spa
+#. module: planning
 #: view:hr.employee:0
 #: field:hr.employee,service_ids:0
 msgid "Servicios"
 msgstr "Servicios"
 
-#. module: salon_spa
-#: view:salon.spa.service:0
-#: field:salon.spa.service,instructions:0
+#. module: planning
+#: view:planning.service:0
+#: field:planning.service,instructions:0
 msgid "Instructions"
 msgstr "Instrucciones"
 
-#. module: salon_spa
-#: field:salon.spa.service,resource_type:0
-#: field:salon.spa.space,resource_type:0
+#. module: planning
+#: field:planning.service,resource_type:0
+#: field:planning.space,resource_type:0
 msgid "Resource Type"
 msgstr "Tipo de Recurso"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,duration:0
+#. module: planning
+#: field:planning.appointment,duration:0
 msgid "Duration"
-msgstr "Duracion"
+msgstr "Duración"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,notes:0
+#. module: planning
+#: field:planning.appointment,notes:0
 msgid "Notes"
 msgstr "Notas"
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_view_client
-#: model:ir.ui.menu,name:salon_spa.menu_view_client
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_view_client
+#: model:ir.ui.menu,name:planning.menu_view_client
 msgid "Clients"
 msgstr "Clientes"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_pos_order_line
+#. module: planning
+#: model:ir.model,name:planning.model_pos_order_line
 msgid "Lines of Point of Sale"
 msgstr "Líneas del Terminal Punto de Venta"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_salon_spa_service
-#: model:ir.model,name:salon_spa.model_salon_spa_space
+#. module: planning
+#: model:ir.model,name:planning.model_planning_service
+#: model:ir.model,name:planning.model_planning_space
 msgid "Resource Detail"
 msgstr "Detalle del Recurso"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,active:0
-#: field:salon.spa.service,active:0
-#: field:salon.spa.space,active:0
+#. module: planning
+#: field:planning.appointment,active:0
+#: field:planning.service,active:0
+#: field:planning.space,active:0
 msgid "Active"
 msgstr "Activo"
 
-#. module: salon_spa
-#: view:salon.spa.appointment:0
+#. module: planning
+#: view:planning.appointment:0
 msgid "View Invoice"
 msgstr "Ver Factura(s)"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,client_id:0
+#. module: planning
+#: field:planning.appointment,client_id:0
 msgid "Client"
 msgstr "Cliente"
 
-#. module: salon_spa
-#: help:salon.spa.service,active:0
-#: help:salon.spa.space,active:0
+#. module: planning
+#: help:planning.service,active:0
+#: help:planning.space,active:0
 msgid "If the active field is set to False, it will allow you to hide the resource record without removing it."
-msgstr "Si el campo activo es Falso, le permitira esconder el recurso sin removerlo."
+msgstr "Si el campo activo es Falso, le permitirá esconder el recurso sin removerlo."
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_salon_spa_schedule
-msgid "salon.spa.schedule"
-msgstr "salon.spa.schedule"
+#. module: planning
+#: model:ir.model,name:planning.model_planning_schedule
+msgid "planning.schedule"
+msgstr "planning.schedule"
 
-#. module: salon_spa
-#: field:salon.spa.service,duration:0
+#. module: planning
+#: field:planning.service,duration:0
 msgid "Time"
 msgstr "Tiempo"
 
-#. module: salon_spa
-#: selection:salon.spa.appointment,state:0
+#. module: planning
+#: selection:planning.appointment,state:0
 msgid "Cancelled"
 msgstr "Cancelada"
 
-#. module: salon_spa
-#: help:salon.spa.service,user_id:0
-#: help:salon.spa.space,user_id:0
+#. module: planning
+#: help:planning.service,user_id:0
+#: help:planning.space,user_id:0
 msgid "Related user name for the resource to manage its access."
 msgstr "Nombre de usuario relacionado para manejar el acceso del recurso."
 
-#. module: salon_spa
-#: help:salon.spa.service,calendar_id:0
-#: help:salon.spa.space,calendar_id:0
+#. module: planning
+#: help:planning.service,calendar_id:0
+#: help:planning.space,calendar_id:0
 msgid "Define the schedule of resource"
 msgstr "Define el horario del recurso."
 
-#. module: salon_spa
-#: model:ir.ui.menu,name:salon_spa.menu_root
-msgid "Salon and Spa"
-msgstr "Salon y Spa"
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_root
+msgid "Planning"
+msgstr "Planificación"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_account_bank_statement_line
+#. module: planning
+#: model:ir.model,name:planning.model_account_bank_statement_line
 msgid "Bank Statement Line"
 msgstr "Línea de extracto bancario"
 
-#. module: salon_spa
-#: field:salon.spa.service,code:0
-#: field:salon.spa.space,code:0
+#. module: planning
+#: field:planning.service,code:0
+#: field:planning.space,code:0
 msgid "Code"
-msgstr "Codigo"
+msgstr "Código"
 
-#. module: salon_spa
+#. module: planning
 #: help:product.product,product_unit_equivalent:0
 msgid "El equivalente a 1 unidad para el producto. Solo aplica                      cuando la Unidad de Medida es distinta de 'Unidad(es)'."
 msgstr "El equivalente a 1 unidad para el producto. Solo aplica                      cuando la Unidad de Medida es distinta de 'Unidad(es)'."
 
-#. module: salon_spa
-#: model:ir.module.category,description:salon_spa.module_category_salon_spa
-msgid "Salon and Spa administration module."
-msgstr "Salon y Spa modulo administrativo."
+#. module: planning
+#: model:ir.module.category,description:planning.module_category_planning
+msgid "Planning administration module."
+msgstr "Planificación modulo administrativo."
 
-#. module: salon_spa
-#: field:salon.spa.schedule,schedule_line_ids:0
+#. module: planning
+#: field:planning.schedule,schedule_line_ids:0
 msgid "Schedule Lines"
 msgstr "Lineas de Horario"
 
-#. module: salon_spa
-#: view:salon.spa.schedule:0
-#: field:salon.spa.schedule.line,schedule_id:0
+#. module: planning
+#: view:planning.schedule:0
+#: field:planning.schedule.line,schedule_id:0
 msgid "Schedule"
 msgstr "Horario"
 
-#. module: salon_spa
+#. module: planning
 #: view:pos.order:0
 msgid "Today"
 msgstr "Hoy"
 
-#. module: salon_spa
+#. module: planning
 #: help:product.supplierinfo,supplier_unit_equivalent_name:0
 msgid "Unidad, Caja, Bote, etc."
 msgstr "Unidad, Caja, Bote, etc."
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_product_product
+#. module: planning
+#: model:ir.model,name:planning.model_product_product
 msgid "Product"
 msgstr "Producto"
 
-#. module: salon_spa
-#: selection:salon.spa.service,resource_type:0
-#: selection:salon.spa.space,resource_type:0
+#. module: planning
+#: selection:planning.service,resource_type:0
+#: selection:planning.space,resource_type:0
 msgid "Human"
 msgstr "Humano"
 
-#. module: salon_spa
-#: model:res.groups,name:salon_spa.group_salon_spa_manager
+#. module: planning
+#: model:res.groups,name:planning.group_planning_manager
 msgid "Manager"
 msgstr "Director"
 
-#. module: salon_spa
-#: model:ir.ui.menu,name:salon_spa.menu_planning
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_planning
 msgid "Planning"
-msgstr "Planificacion"
+msgstr "Planificación"
 
-#. module: salon_spa
-#: selection:salon.spa.appointment,state:0
+#. module: planning
+#: selection:planning.appointment,state:0
 msgid "Done"
 msgstr "Concluida"
 
-#. module: salon_spa
-#: model:res.groups,name:salon_spa.group_salon_spa_user
-#: field:salon.spa.service,user_id:0
-#: field:salon.spa.space,user_id:0
+#. module: planning
+#: model:res.groups,name:planning.group_planning_user
+#: field:planning.service,user_id:0
+#: field:planning.space,user_id:0
 msgid "User"
 msgstr "Usuario"
 
-#. module: salon_spa
+#. module: planning
 #: help:product.supplierinfo,supplier_unit_equivalent:0
 msgid "El equivalente a 1 unidad en las ordenes para el                      proveedor. Ejemplo: El proveedor suple los productos                      en cajas de 24 unidades, este campo debe tener el valor                      24 ya que al pedir 1 caja (unidad del proveedor), se                      obtienen los productos deseados (24 unidades). El                      equivalente a 1 unidad cuando la unidad de medida del                      productos es diferente de 'Unidad(es)', lo toma del                      campo product_unit_equivalent."
 msgstr "El equivalente a 1 unidad en las ordenes para el                      proveedor. Ejemplo: El proveedor suple los productos                      en cajas de 24 unidades, este campo debe tener el valor                      24 ya que al pedir 1 caja (unidad del proveedor), se                      obtienen los productos deseados (24 unidades). El                      equivalente a 1 unidad cuando la unidad de medida del                      productos es diferente de 'Unidad(es)', lo toma del                      campo product_unit_equivalent."
 
-#. module: salon_spa
-#: model:ir.actions.act_window,name:salon_spa.action_service
-#: model:ir.ui.menu,name:salon_spa.menu_service
-#: view:salon.spa.service:0
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_service
+#: model:ir.ui.menu,name:planning.menu_service
+#: view:planning.service:0
 msgid "Services"
 msgstr "Servicios"
 
-#. module: salon_spa
-#: view:salon.spa.appointment:0
+#. module: planning
+#: view:planning.appointment:0
 msgid "Cancel"
 msgstr "Cancelar"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_res_partner
+#. module: planning
+#: model:ir.model,name:planning.model_res_partner
 msgid "Partner"
 msgstr "Socio"
 
-#. module: salon_spa
-#: view:salon.spa.schedule:0
+#. module: planning
+#: view:planning.schedule:0
 msgid "Order lines"
 msgstr "Lineas de orden"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_pos_order
+#. module: planning
+#: model:ir.model,name:planning.model_pos_order
 msgid "Point of Sale"
 msgstr "Terminal Punto de Venta"
 
-#. module: salon_spa
-#: model:ir.model,name:salon_spa.model_salon_spa_appointment
-msgid "salon.spa.appointment"
-msgstr "salon.spa.appointment"
+#. module: planning
+#: model:ir.model,name:planning.model_planning_appointment
+msgid "planning.appointment"
+msgstr "planning.appointment"
 
-#. module: salon_spa
-#: field:salon.spa.appointment,price:0
+#. module: planning
+#: field:planning.appointment,price:0
 msgid "Price"
 msgstr "Precio"
 
-#. module: salon_spa
-#: field:salon.spa.service,time_efficiency:0
-#: field:salon.spa.space,time_efficiency:0
+#. module: planning
+#: field:planning.service,time_efficiency:0
+#: field:planning.space,time_efficiency:0
 msgid "Efficiency Factor"
 msgstr "Factor de Eficiencia"
 

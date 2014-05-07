@@ -29,7 +29,7 @@ from openerp.addons.resource_planning.resource_planning import resource_planning
 
 #order is important here. resource_planning has to come first
 class appointment(resource_planning, base_state, Model):
-    _name = 'salon.spa.appointment'
+    _name = 'planning.appointment'
 
     _resource_fields = ['employee_id', 'space_id']
 
@@ -48,9 +48,9 @@ class appointment(resource_planning, base_state, Model):
                 'res.partner', 'Client',
                 domain=[('supplier', '=', False)], required=True,),
             'service_id': fields.many2one(
-                'salon.spa.service', 'Service', required=True),
+                'planning.service', 'Service', required=True),
             'space_id': fields.many2one(
-                'salon.spa.space', 'Space', required=True),
+                'planning.space', 'Space', required=True),
             'state': fields.selection([('draft', 'Draft'),
                                        ('pending', 'Pending'),
                                        ('open', 'Confirmed'),
@@ -111,13 +111,13 @@ class appointment(resource_planning, base_state, Model):
 
         # Round to next five minute interval
         date_start = self._round_time(round_to=60 * 5) + timedelta(minutes=5)
-        # TODO use correct timezone to compare with salon.spa.schedule
+        # TODO use correct timezone to compare with planning.schedule
         # sched = schedule
         date = datetime.strftime(date_start.date(), "%Y-%m-%d")
-        sched_id = self.pool.get('salon.spa.schedule').\
+        sched_id = self.pool.get('planning.schedule').\
                 search(cr, uid, [('date', '=', date)], context=context)
         if sched_id:
-            sched_obj = self.pool.get('salon.spa.schedule').\
+            sched_obj = self.pool.get('planning.schedule').\
                     browse(cr, uid, sched_id[0], context=context)
             date_closing = date_start.replace(hour=int(sched_obj.hour_end), minute=00, second=00)
             minutes_till_closing = (date_closing - date_start).seconds / 60
@@ -154,7 +154,7 @@ class appointment(resource_planning, base_state, Model):
         """
 
         if service_id:
-            service_obj = self.pool.get('salon.spa.service').\
+            service_obj = self.pool.get('planning.service').\
                     browse(cr, uid, service_id, context=context)
             start_date, duration = context['start_date'], service_obj.duration,
 
@@ -440,7 +440,7 @@ class appointment(resource_planning, base_state, Model):
         start_date = self._to_datetime(start_date)
         end_date = start_date + timedelta(hours=duration)
 
-        appt_ids = self.pool.get('salon.spa.appointment').\
+        appt_ids = self.pool.get('planning.appointment').\
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
                                  ('state', '!=', 'cancel'),
@@ -449,7 +449,7 @@ class appointment(resource_planning, base_state, Model):
                         context=context)
 
         for appt in appt_ids:
-            appt_obj = self.pool.get('salon.spa.appointment').\
+            appt_obj = self.pool.get('planning.appointment').\
                     browse(cr, uid, appt, context=context)
             appt_start_date = datetime.strptime(appt_obj.start, '%Y-%m-%d %H:%M:%S')
             appt_end_date = appt_start_date + timedelta(hours=appt_obj.duration)
@@ -479,9 +479,9 @@ class appointment(resource_planning, base_state, Model):
         appt_end_hour = end_date.hour + (end_date.minute / 60)  # float format
 
         date = datetime.strftime(start_date.date(), "%Y-%m-%d")
-        sched_id = self.pool.get('salon.spa.schedule').\
+        sched_id = self.pool.get('planning.schedule').\
                 search(cr, uid, [('date', '=', date)])
-        sched_obj = self.pool.get('salon.spa.schedule').\
+        sched_obj = self.pool.get('planning.schedule').\
                 browse(cr, uid, sched_id, context=context)
         if sched_obj:
             for line in sched_obj[0].schedule_line_ids:
@@ -500,7 +500,7 @@ class appointment(resource_planning, base_state, Model):
 
         if type(ids) is not list: ids = [ids]
         for appt_id in list(ids):
-            appt_obj = self.pool.get('salon.spa.appointment').\
+            appt_obj = self.pool.get('planning.appointment').\
                     browse(cr, uid, appt_id, context=context)
             if appt_obj.state == 'done':
                 raise except_orm(_('Error'), _("La cita fue concluida/pagada, no puede ser eliminada."))
@@ -510,7 +510,7 @@ class appointment(resource_planning, base_state, Model):
         # keys in vals correspond with fields that have changed
         # Get values previous to save
         # prev_appt holds state of appt previous to save
-        appt_obj = self.pool.get('salon.spa.appointment').\
+        appt_obj = self.pool.get('planning.appointment').\
                 browse(cr, uid, ids[0], context=context)
 
         # 'done' and 'cancel' appointments mustn't be modified
@@ -528,7 +528,7 @@ class appointment(resource_planning, base_state, Model):
         #if vals.get('start', False):
         #    self._validate_past_date(vals.get('start', False) or prev_appt['start'])
 
-        service_obj = self.pool.get('salon.spa.service').\
+        service_obj = self.pool.get('planning.service').\
                 browse(cr, uid, vals.get('service_id', False) or prev_appt['service_id'], context=context)
         # store read-only fields
         vals['price'] = service_obj.service.list_price
@@ -573,7 +573,7 @@ class appointment(resource_planning, base_state, Model):
             if not self.check_resource_availability(cr, uid, ids,
                     'space_id', current_appt['space_id'],
                     current_appt['start'], current_appt['duration'], context):
-                self._raise_unavailable(cr, uid, 'salon.spa.space', current_appt['space_id'], context)
+                self._raise_unavailable(cr, uid, 'planning.space', current_appt['space_id'], context)
 
         # Duration changes if service is modified
         if vals.get('duration', False) or vals.get('employee_id', False):
@@ -610,7 +610,7 @@ class appointment(resource_planning, base_state, Model):
     def create(self, cr, uid, vals, context=None):
         #self._validate_past_date(vals['start'])
 
-        service_obj = self.pool.get('salon.spa.service').\
+        service_obj = self.pool.get('planning.service').\
                 browse(cr, uid, vals['service_id'], context=context)
         # store read-only fields
         vals['price'] = service_obj.service.list_price
@@ -640,7 +640,7 @@ class appointment(resource_planning, base_state, Model):
 class service(Model):
     _inherit = 'resource.resource'
 
-    _name = 'salon.spa.service'
+    _name = 'planning.service'
 
     _columns = {
             'service': fields.many2one(
@@ -651,7 +651,7 @@ class service(Model):
             'duration': fields.float('Time', required=True),
             'instructions': fields.text('Instructions', translate=True),
             'space_ids': fields.many2many(
-                'salon.spa.space',
+                'planning.space',
                 'service_space_rel',
                 'service_id', 'space_id',
                 'Allowed Spaces'),
@@ -675,7 +675,7 @@ class service(Model):
 class space(Model):
     _inherit = 'resource.resource'
 
-    _name = 'salon.spa.space'
+    _name = 'planning.space'
 
     _defaults = {
             'resource_type': 'material',
@@ -683,7 +683,7 @@ class space(Model):
 
 
 class schedule(Model):
-    _name = 'salon.spa.schedule'
+    _name = 'planning.schedule'
 
     _order = 'date desc'
 
@@ -691,18 +691,18 @@ class schedule(Model):
             'date': fields.date('Date', required=True),
             'hour_start': fields.float(u'Starting Hour', required=True),
             'hour_end': fields.float(u'Ending Hour', required=True),
-            'schedule_line_ids': fields.one2many('salon.spa.schedule.line', 'schedule_id', 'Schedule Lines'),
+            'schedule_line_ids': fields.one2many('planning.schedule.line', 'schedule_id', 'Schedule Lines'),
             }
 
     def create(self, cr, uid, vals, context=None):
-        if self.pool.get('salon.spa.schedule').search(cr, uid, [('date', '=', vals.get('date'))], context=context):
+        if self.pool.get('planning.schedule').search(cr, uid, [('date', '=', vals.get('date'))], context=context):
             raise except_orm(_('Error'), _("No puede crear un horario para esta fecha. Existe duplicidad."))
         id = super(schedule, self).create(cr, uid, vals, context)
         return id
 
     def write(self, cr, uid, ids, vals, context=None):
         if vals.get('date')\
-            and self.pool.get('salon.spa.schedule').\
+            and self.pool.get('planning.schedule').\
                     search(cr, uid, [('date', '=', vals.get('date'))], context=context):
             raise except_orm(_('Error'), _("No puede cambiar el horario a esta fecha. Existe duplicidad."))
         result = super(schedule, self).write(cr, uid, ids, vals, context)
@@ -710,7 +710,7 @@ class schedule(Model):
 
 
 class schedule_line(Model):
-    _name = 'salon.spa.schedule.line'
+    _name = 'planning.schedule.line'
 
     _order = 'hour_start, employee_id'
 
@@ -721,7 +721,7 @@ class schedule_line(Model):
             'hour_end': fields.float(u'Ending Hour', required=True),
             'missing': fields.boolean('Missing', required=False),
             'schedule_id': fields.many2one(
-                'salon.spa.schedule', 'Schedule', required=True),
+                'planning.schedule', 'Schedule', required=True),
             }
 
     _defaults = {
@@ -748,7 +748,7 @@ class schedule_line(Model):
 
         """
 
-        return self.pool.get('salon.spa.appointment').\
+        return self.pool.get('planning.appointment').\
                 search(cr, uid, [('start', '>=', start_time),
                                  ('start', '<=', end_time),
                                  ('state', '!=', 'cancel'),
@@ -781,7 +781,7 @@ class schedule_line(Model):
         hour_end = vals.get('hour_end')
         self._validate_start_end(hour_start, hour_end)
 
-        sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
+        sched_obj = self.pool.get('planning.schedule').browse(cr, uid, vals.get('schedule_id'), context=context)
         if sched_obj.hour_start > hour_start\
                 or sched_obj.hour_end < hour_end:
             raise except_orm(_('Error'), _("Tiempos de inicio y/o fin estan fuera de los valores permitidos para esta fecha/horario. Imposible crear."))
@@ -798,13 +798,13 @@ class schedule_line(Model):
         start = sched_obj.date + ' ' + time_str
         client_id = self.pool.get('res.partner').\
                 search(cr, uid, [('name', '=', 'Break')], context=context)
-        service_id = self.pool.get('salon.spa.service').\
+        service_id = self.pool.get('planning.service').\
                 search(cr, uid, [('name', '=', 'Lunch')], context=context)
-        space_id = self.pool.get('salon.spa.space').\
+        space_id = self.pool.get('planning.space').\
                 search(cr, uid, [('name', '=', 'Libre')], context=context)
         # To get service information.
-        service_obj = self.pool.get('salon.spa.service').\
-                browse(cr, uid, client_id[0], context=context)
+        service_obj = self.pool.get('planning.service').\
+                browse(cr, uid, service_id[0], context=context)
         values = {'client_id': client_id[0],
                   'start': start,
                   'service_id': service_id[0],
@@ -813,7 +813,7 @@ class schedule_line(Model):
                   'space_id': space_id[0],
                   'employee_id': vals.get('employee_id')
                   }
-        self.pool.get('salon.spa.appointment').create(cr, uid, values)
+        self.pool.get('planning.appointment').create(cr, uid, values)
 
         return id
 
@@ -821,8 +821,8 @@ class schedule_line(Model):
         """
         Modified to add validations:
 
-        salon.spa.schedule: avoid assigning start/end outside schedule range.
-        salon.spa.appointment: avoid assigning start/end times outside all appointment range.
+        planning.schedule: avoid assigning start/end outside schedule range.
+        planning.appointment: avoid assigning start/end times outside all appointment range.
 
         """
 
@@ -830,12 +830,12 @@ class schedule_line(Model):
         hour_end = vals.get('hour_end')
         missing = vals.get('missing')
 
-        sched_line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        sched_line_obj = self.pool.get('planning.schedule.line').browse(cr, uid, ids[0], context=context)
         self._validate_start_end(hour_start or sched_line_obj.hour_start,
                                  hour_end or sched_line_obj.hour_end)
 
         if hour_start or hour_end or missing:
-            sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
+            sched_obj = self.pool.get('planning.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
             if (hour_start and sched_obj.hour_start > hour_start)\
                 or (hour_end and sched_obj.hour_end < hour_end):
                 raise except_orm(_('Error'), _("Tiempos de inicio y/o fin estan fuera de los valores permitidos para esta fecha/horario. Imposible actualizar."))
@@ -849,7 +849,7 @@ class schedule_line(Model):
                 raise except_orm(_('Error'), _("Un empleado reportado como 'Libre' tiene cita(s) asignada(s) para esta fecha,"
                                                " favor cancelar o mover las cita(s) antes de continuar."))
             for appt_id in appt_ids:
-                appt_obj = self.pool.get('salon.spa.appointment').browse(cr, uid, appt_id, context=context)
+                appt_obj = self.pool.get('planning.appointment').browse(cr, uid, appt_id, context=context)
                 appt_start = self._to_datetime(appt_obj.start)
                 appt_end = appt_start + timedelta(hours=appt_obj.duration)
                 appt_start = appt_start.hour + (float(appt_start.minute) / 60)  # float format
@@ -867,10 +867,10 @@ class schedule_line(Model):
 
         """
 
-        sched_line_obj = self.pool.get('salon.spa.schedule.line').browse(cr, uid, ids[0], context=context)
+        sched_line_obj = self.pool.get('planning.schedule.line').browse(cr, uid, ids[0], context=context)
         hour_start = sched_line_obj.hour_start
         hour_end =  sched_line_obj.hour_end
-        sched_obj = self.pool.get('salon.spa.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
+        sched_obj = self.pool.get('planning.schedule').browse(cr, uid, sched_line_obj.schedule_id.id, context=context)
         date = datetime.strptime(sched_obj.date, '%Y-%m-%d')
         start_time, end_time = self._range_start_end_time(str(date),
                                                         int(hour_start),

@@ -1,8 +1,8 @@
 <openerp>
     <data>
         <!-- POS Order tree view -->
-        <record id="salon_spa_account_bank_statement_form_view" model="ir.ui.view">
-            <field name="name">salon.spa.account.bank.statement.form</field>
+        <record id="planning_account_bank_statement_form_view" model="ir.ui.view">
+            <field name="name">planning.account.bank.statement.form</field>
             <field name="model">account.bank.statement</field>
             <field name="inherit_id" ref="account_voucher.view_cash_statement_form_voucher"/>
             <field name="arch" type="xml">
