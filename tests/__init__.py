@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tests for salon_spa module.
+Tests for planning module.
 
 This module groups a few sub-modules containing unittest2 test cases.
 
@@ -13,13 +13,11 @@ $ ./openerp-server -c .openerp_serverrc_marcos -d db -u module --log-level=test 
 """
 
 # import test_ir_sequence
-import test_salon_spa
-import test_schedule
+import test_planning
 
 # When updated
 fast_suite = [
-    test_salon_spa,
-    test_schedule,
+    test_planning,
 ]
 
 # When installed

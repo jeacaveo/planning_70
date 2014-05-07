@@ -1,8 +1,8 @@
-Salon & Spa Module for Marcos Organizador de Negocios
+Planning Module for Marcos Organizador de Negocios
 ------
 
 Marcos Organizador de Negocios is a collection of addons for OpenERP localized for Dominican Republic.
-This is the Salon & Spa module.
+This is the Planning module.
 
 
 Installation
@@ -24,7 +24,7 @@ To configure a development enviroment (in Ubuntu):
 2. Clone this repo to your marcos_addons dir:
    (Example: `~/.virtualenvs/src/marcos_addons`)
 
-        $ git clone https://github.com/jventuravs/salon_spa.git
+        $ git clone https://github.com/jventuravs/planning.git
 
 3. Clone the required custom dependencies into the same repo:
 

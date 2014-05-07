@@ -25,7 +25,7 @@ class hr_employee(osv.osv):
     _inherit = 'hr.employee'
     _columns = {
             'service_ids': fields.many2many(
-                'salon.spa.service',
+                'planning.service',
                 'employee_service_rel',
                 'employee_id', 'service',
                 'Servicios'),

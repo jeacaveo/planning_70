@@ -18,9 +18,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import planning
 import account
-import hr_employee
-import product
-import res_partner
-import point_of_sale

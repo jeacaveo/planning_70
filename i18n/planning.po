@@ -1,0 +1,461 @@
+# Translation of OpenERP Server.
+# This file contains the translation of the following modules:
+#	* planning
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OpenERP Server 7.0-20140312-003212\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-05-04 18:43+0000\n"
+"PO-Revision-Date: 2014-05-04 18:43+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: planning
+#: field:planning.service,categ_id:0
+msgid "Category"
+msgstr ""
+
+#. module: planning
+#: field:planning.schedule,hour_start:0
+#: field:planning.schedule.line,hour_start:0
+msgid "Starting Hour"
+msgstr ""
+
+#. module: planning
+#: selection:planning.appointment,state:0
+msgid "Confirmed"
+msgstr ""
+
+#. module: planning
+#: help:planning.service,time_efficiency:0
+#: help:planning.space,time_efficiency:0
+msgid "This field depict the efficiency of the resource to complete tasks. e.g  resource put alone on a phase of 5 days with 5 tasks assigned to him, will show a load of 100% for this phase by default, but if we put a efficiency of 200%, then his load will only be 50%."
+msgstr ""
+
+#. module: planning
+#: field:res.partner,reference_used:0
+msgid "Rerefence Used"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,service_id:0
+msgid "Service"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,space_id:0
+msgid "Space"
+msgstr ""
+
+#. module: planning
+#: view:planning.service:0
+#: field:planning.service,space_ids:0
+msgid "Allowed Spaces"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,calendar_id:0
+#: field:planning.space,calendar_id:0
+msgid "Working Time"
+msgstr ""
+
+#. module: planning
+#: view:planning.schedule:0
+msgid "Schedule Detail"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,order_line_id:0
+msgid "POS Order Line"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,start:0
+msgid "Start"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_planning_schedule_line
+msgid "planning.schedule.line"
+msgstr ""
+
+#. module: planning
+#: selection:planning.appointment,state:0
+msgid "Draft"
+msgstr ""
+
+#. module: planning
+#: view:planning.appointment:0
+msgid "Check In"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_hr_employee
+#: field:planning.appointment,employee_id:0
+#: field:planning.schedule.line,employee_id:0
+msgid "Employee"
+msgstr ""
+
+#. module: planning
+#: view:pos.order:0
+msgid "New"
+msgstr ""
+
+#. module: planning
+#: help:planning.appointment,state:0
+msgid "This state makes the appointment:                                             'Draft' When creating or break.                                             'Pending' Reserved, but client hasn't arrived.                                             'Confirmed' Client has arrived.                                             'Done' Appointment was paid/invoiced.                                             'Cancelled' Client cancelled, no-show, etc."
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_checkout
+#: model:ir.ui.menu,name:planning.menu_checkout
+msgid "Checkout"
+msgstr ""
+
+#. module: planning
+#: view:pos.order:0
+msgid "Amount total"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,name:0
+#: field:planning.service,name:0
+#: field:planning.service,service:0
+#: field:planning.space,name:0
+msgid "Name"
+msgstr ""
+
+#. module: planning
+#: view:planning.appointment:0
+#: view:planning.service:0
+msgid "Notes and Observations."
+msgstr ""
+
+#. module: planning
+#: field:pos.order.line,appointment_id:0
+msgid "Appointment"
+msgstr ""
+
+#. module: planning
+#: field:res.partner,referrer_id:0
+msgid "Refered by"
+msgstr ""
+
+#. module: planning
+#: field:planning.schedule.line,missing:0
+msgid "Missing"
+msgstr ""
+
+#. module: planning
+#: field:product.product,product_unit_equivalent:0
+#: field:product.supplierinfo,supplier_unit_equivalent:0
+msgid "Equivalencia de Unidad"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,company_id:0
+#: field:planning.space,company_id:0
+msgid "Company"
+msgstr ""
+
+#. module: planning
+#: selection:planning.service,resource_type:0
+#: selection:planning.space,resource_type:0
+msgid "Material"
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_schedule
+#: model:ir.ui.menu,name:planning.menu_schedule
+#: view:planning.schedule:0
+msgid "Schedules"
+msgstr ""
+
+#. module: planning
+#: field:planning.schedule,hour_end:0
+#: field:planning.schedule.line,hour_end:0
+msgid "Ending Hour"
+msgstr ""
+
+#. module: planning
+#: field:product.supplierinfo,supplier_unit_equivalent_name:0
+msgid "Nombre de Equivalencia"
+msgstr ""
+
+#. module: planning
+#: help:res.partner,referrer_id:0
+msgid "Another client that refered this client."
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_appointment
+#: model:ir.ui.menu,name:planning.menu_appointment
+#: view:planning.appointment:0
+msgid "Appointments"
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_space
+#: model:ir.ui.menu,name:planning.menu_space
+#: view:planning.space:0
+msgid "Spaces"
+msgstr ""
+
+#. module: planning
+#: selection:planning.appointment,state:0
+msgid "Pending"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_product_supplierinfo
+msgid "Information about a product supplier"
+msgstr ""
+
+#. module: planning
+#: field:planning.schedule,date:0
+msgid "Date"
+msgstr ""
+
+#. module: planning
+#: model:ir.module.category,name:planning.module_category_planning
+msgid "Planning"
+msgstr ""
+
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_configuration
+msgid "Configuration"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,state:0
+msgid "Estado"
+msgstr ""
+
+#. module: planning
+#: view:hr.employee:0
+#: field:hr.employee,service_ids:0
+msgid "Servicios"
+msgstr ""
+
+#. module: planning
+#: view:planning.service:0
+#: field:planning.service,instructions:0
+msgid "Instructions"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,resource_type:0
+#: field:planning.space,resource_type:0
+msgid "Resource Type"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,duration:0
+msgid "Duration"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,notes:0
+msgid "Notes"
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_view_client
+#: model:ir.ui.menu,name:planning.menu_view_client
+msgid "Clients"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_pos_order_line
+msgid "Lines of Point of Sale"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_planning_service
+#: model:ir.model,name:planning.model_planning_space
+msgid "Resource Detail"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,active:0
+#: field:planning.service,active:0
+#: field:planning.space,active:0
+msgid "Active"
+msgstr ""
+
+#. module: planning
+#: view:planning.appointment:0
+msgid "View Invoice"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,client_id:0
+msgid "Client"
+msgstr ""
+
+#. module: planning
+#: help:planning.service,active:0
+#: help:planning.space,active:0
+msgid "If the active field is set to False, it will allow you to hide the resource record without removing it."
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_planning_schedule
+msgid "planning.schedule"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,duration:0
+msgid "Time"
+msgstr ""
+
+#. module: planning
+#: selection:planning.appointment,state:0
+msgid "Cancelled"
+msgstr ""
+
+#. module: planning
+#: help:planning.service,user_id:0
+#: help:planning.space,user_id:0
+msgid "Related user name for the resource to manage its access."
+msgstr ""
+
+#. module: planning
+#: help:planning.service,calendar_id:0
+#: help:planning.space,calendar_id:0
+msgid "Define the schedule of resource"
+msgstr ""
+
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_root
+msgid "Planning"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_account_bank_statement_line
+msgid "Bank Statement Line"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,code:0
+#: field:planning.space,code:0
+msgid "Code"
+msgstr ""
+
+#. module: planning
+#: help:product.product,product_unit_equivalent:0
+msgid "El equivalente a 1 unidad para el producto. Solo aplica                      cuando la Unidad de Medida es distinta de 'Unidad(es)'."
+msgstr ""
+
+#. module: planning
+#: model:ir.module.category,description:planning.module_category_planning
+msgid "Planning administration module."
+msgstr ""
+
+#. module: planning
+#: field:planning.schedule,schedule_line_ids:0
+msgid "Schedule Lines"
+msgstr ""
+
+#. module: planning
+#: view:planning.schedule:0
+#: field:planning.schedule.line,schedule_id:0
+msgid "Schedule"
+msgstr ""
+
+#. module: planning
+#: view:pos.order:0
+msgid "Today"
+msgstr ""
+
+#. module: planning
+#: help:product.supplierinfo,supplier_unit_equivalent_name:0
+msgid "Unidad, Caja, Bote, etc."
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_product_product
+msgid "Product"
+msgstr ""
+
+#. module: planning
+#: selection:planning.service,resource_type:0
+#: selection:planning.space,resource_type:0
+msgid "Human"
+msgstr ""
+
+#. module: planning
+#: model:res.groups,name:planning.group_planning_manager
+msgid "Manager"
+msgstr ""
+
+#. module: planning
+#: model:ir.ui.menu,name:planning.menu_planning
+msgid "Planning"
+msgstr ""
+
+#. module: planning
+#: selection:planning.appointment,state:0
+msgid "Done"
+msgstr ""
+
+#. module: planning
+#: model:res.groups,name:planning.group_planning_user
+#: field:planning.service,user_id:0
+#: field:planning.space,user_id:0
+msgid "User"
+msgstr ""
+
+#. module: planning
+#: help:product.supplierinfo,supplier_unit_equivalent:0
+msgid "El equivalente a 1 unidad en las ordenes para el                      proveedor. Ejemplo: El proveedor suple los productos                      en cajas de 24 unidades, este campo debe tener el valor                      24 ya que al pedir 1 caja (unidad del proveedor), se                      obtienen los productos deseados (24 unidades). El                      equivalente a 1 unidad cuando la unidad de medida del                      productos es diferente de 'Unidad(es)', lo toma del                      campo product_unit_equivalent."
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.action_service
+#: model:ir.ui.menu,name:planning.menu_service
+#: view:planning.service:0
+msgid "Services"
+msgstr ""
+
+#. module: planning
+#: view:planning.appointment:0
+msgid "Cancel"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_res_partner
+msgid "Partner"
+msgstr ""
+
+#. module: planning
+#: view:planning.schedule:0
+msgid "Order lines"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_pos_order
+msgid "Point of Sale"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_planning_appointment
+msgid "planning.appointment"
+msgstr ""
+
+#. module: planning
+#: field:planning.appointment,price:0
+msgid "Price"
+msgstr ""
+
+#. module: planning
+#: field:planning.service,time_efficiency:0
+#: field:planning.space,time_efficiency:0
+msgid "Efficiency Factor"
+msgstr ""
+

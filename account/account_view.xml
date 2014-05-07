@@ -1,0 +1,15 @@
+<openerp>
+    <data>
+        <!-- POS Order tree view -->
+        <record id="planning_account_bank_statement_form_view" model="ir.ui.view">
+            <field name="name">planning.account.bank.statement.form</field>
+            <field name="model">account.bank.statement</field>
+            <field name="inherit_id" ref="account_voucher.view_cash_statement_form_voucher"/>
+            <field name="arch" type="xml">
+                <!-- This fields are not gonna be shown so the printed reports is shorter -->
+                <field name="account_id" position="replace" />
+                <field name="voucher_id" position="replace" />
+            </field>
+        </record>
+    </data>
+</openerp>
