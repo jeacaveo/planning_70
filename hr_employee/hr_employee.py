@@ -23,10 +23,8 @@ from openerp.osv import fields, osv
 
 class hr_employee(osv.osv):
     _inherit = 'hr.employee'
-    _columns = {
-            'service_ids': fields.many2many(
-                'planning.service',
-                'employee_service_id_rel',
-                'employee_id', 'service',
-                'Servicios'),
-            }
+    _columns = {'service_ids': fields.many2many('planning.service',
+                                                'employee_service_id_rel',
+                                                'employee_id', 'service',
+                                                'Servicios'),
+                }
