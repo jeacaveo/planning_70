@@ -51,6 +51,10 @@ class appointment(resource_planning, base_state, Model):
                 'planning.service', 'Service', required=True),
             'space_id': fields.many2one(
                 'planning.space', 'Space', required=True),
+            'notes': fields.text('Notes'),
+            'active': fields.boolean('Active', required=False),
+            'order_line_id': fields.many2one(
+                'pos.order.line', 'POS Order Line'),
             'state': fields.selection([('draft', 'Draft'),
                                        ('pending', 'Pending'),
                                        ('open', 'Confirmed'),
@@ -64,10 +68,7 @@ class appointment(resource_planning, base_state, Model):
                                              'Confirmed' Client has arrived.\
                                              'Done' Appointment was paid/invoiced.\
                                              'Cancelled' Client cancelled, no-show, etc."),
-            'notes': fields.text('Notes'),
-            'active': fields.boolean('Active', required=False),
-            'order_line_id': fields.many2one(
-                'pos.order.line', 'POS Order Line')
+            'date_closed': fields.datetime('Date Closed'),
             }
 
     def _last_appointment_client(self, cr, uid, context=None):
@@ -352,7 +353,6 @@ class appointment(resource_planning, base_state, Model):
                         'name': service_obj.service.name,
                         'product_id': service_obj.service.id,
                         'price_unit': service_obj.service.list_price,
-                        'appointment_id': appt_id,
                         })
         # Update appointment with proper order line
         appt_obj = self.browse(cr, uid, [appt_id], context=context)[0]
@@ -391,7 +391,7 @@ class appointment(resource_planning, base_state, Model):
             del_order_line = self.pool.get('pos.order.line').\
                     browse(cr, uid, appt_obj.order_line_id.id, context=context)
             if del_order_line:
-                del_order_line.write({'appointment_id': None})
+                self.write(cr, uid, ids, {'order_line_id': None})
                 del_order_line.unlink()
 
         self.case_cancel(cr, uid, ids)
@@ -444,7 +444,7 @@ class appointment(resource_planning, base_state, Model):
                 search(cr, uid, [('start', '>=', day_start),
                                  ('start', '<=', day_end),
                                  ('state', '!=', 'cancel'),
-                                 ('id', '!=', ids),
+                                 ('id', 'not in', [ids]),
                                  (resource_type, '=', resource)],
                         context=context)
 
@@ -596,11 +596,8 @@ class appointment(resource_planning, base_state, Model):
                 or datetime.strptime(current_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                    != datetime.strptime(prev_appt['start'], '%Y-%m-%d %H:%M:%S').replace(hour=0, minute=0, second=0) \
                 or current_appt['service_id'] != prev_appt['service_id']:
-                order_line_obj = self.pool.get('pos.order.line').\
-                        search(cr, uid, [('appointment_id', '=', ids[0])],
-                               context=context)
                 del_order_line = self.pool.get('pos.order.line').\
-                        unlink(cr, uid, order_line_obj[0], context=context)
+                        unlink(cr, uid, appt_obj.order_line_id, context=context)
                 if not del_order_line:
                     raise except_orm(_('Error'), _('Error removiendo detalle de factura (pos.order.line).'))
                 if not self._create_update_order_client_day(cr, uid, current_appt['client_id'], current_appt['start'], ids[0], service_obj, context):
@@ -652,7 +649,7 @@ class service(Model):
             'instructions': fields.text('Instructions', translate=True),
             'space_ids': fields.many2many(
                 'planning.space',
-                'service_space_rel',
+                'service_space_id_rel',
                 'service_id', 'space_id',
                 'Allowed Spaces'),
             }
