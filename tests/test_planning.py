@@ -80,23 +80,27 @@ class TestPlanning(common.TransactionCase):
         service_obj.write({'space_ids': [(4, break_space_id)]})
 
         # Create schedule for employee
-        self.date = '2000-01-01'  # Old date chosen to avoid conflict with existing data.
+        # Old date chosen to avoid conflict with existing data.
+        self.date = '2000-01-01'
         self.sched_id = self.create_sched(cr, uid, self.sched_obj, self.date)
         for employee_id in employee_ids:
-            self.sched__line_id = self.create_sched_line(cr, uid, self.sched_line_obj, self.sched_id, employee_id)
+            self.sched__line_id = self.create_sched_line(cr, uid,
+                                                         self.sched_line_obj,
+                                                         self.sched_id,
+                                                         employee_id)
 
         # Create client to provide service to
         values = {'name': 'Client #1'}
         self.client_id = self.client_obj.create(cr, uid, values, context={})
 
         # Create appointment with a chosen time.
-        self.start = '2000-01-01 14:30:00'  # TODO fix timezone problem (this time is actually 10:30)
+        # TODO fix timezone problem (this time is actually 10:30)
+        self.start = '2000-01-01 14:30:00'
         self.appt_id = self.create_appt(cr, uid, self.appt_obj,
                                         self.client_id,
                                         self.start,
                                         self.service_id,
                                         context={'start_date': self.start})
-
 
         # To open pos session (pos.session musn't be open when testing.)
         # TODO use receptionist user
@@ -139,7 +143,7 @@ class TestPlanning(common.TransactionCase):
         """
         Check that you can create and appointment on top of a canceled one,
         with the same resources.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -157,7 +161,7 @@ class TestPlanning(common.TransactionCase):
         """
         Check that the same client can't have two appointments
         at the same time.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -175,7 +179,7 @@ class TestPlanning(common.TransactionCase):
         """
         Check that the same employee can't have two appointments
         at the same time.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -196,7 +200,7 @@ class TestPlanning(common.TransactionCase):
         """
         Check that the same space can't have two appointments
         at the same time.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -216,7 +220,7 @@ class TestPlanning(common.TransactionCase):
     def testAppointmentUnlink(self):
         """
         Check a normal user can't unlink/delete an appointment.
-        
+
         """
 
         # TODO use receptionist user
@@ -230,7 +234,7 @@ class TestPlanning(common.TransactionCase):
     def testAppointmentUnlinkManager(self):
         """
         Check a manager user can unlink/delete an appointment.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -241,7 +245,7 @@ class TestPlanning(common.TransactionCase):
         """
         Pay the POS order for a checked-in appointment,
         and validate that appointment status has changed and can't be modified.
-        
+
         """
 
         # TODO use receptionist user
@@ -273,7 +277,7 @@ class TestPlanning(common.TransactionCase):
     def testScheduleDuplicate(self):
         """
         Check if schedule creation is working and not allowing duplicates.
-        
+
         """
 
         cr, uid = self.cr, self.uid
@@ -291,7 +295,7 @@ class TestPlanning(common.TransactionCase):
         Check if schedule.line creates an appointment assigned to it's employee_id,
         if it does, don't allow modification (start/end hours or missing)
         or unlinking, else allow it.
-        
+
         """
 
         # Create schedule and schedule.line
@@ -302,15 +306,15 @@ class TestPlanning(common.TransactionCase):
         # Can't create schedule.line with hour_start less than schedule hour_start.
         with self.assertRaises(except_orm) as ex:
             self.create_sched_line(cr, uid, self.sched_line_obj,
-                    self.sched_id, self.employee_id, hour_start=8, hour_end=17)
+                                   self.sched_id, self.employee_id, hour_start=8, hour_end=17)
         # Can't create schedule.line with hour_end greater than schedule hour_end.
         with self.assertRaises(except_orm) as ex:
             self.create_sched_line(cr, uid, self.sched_line_obj,
-                    self.sched_id, self.employee_id, hour_start=9, hour_end=22)
+                                   self.sched_id, self.employee_id, hour_start=9, hour_end=22)
         # Can't create schedule.line with hour_end less than or equal to hour_start.
         with self.assertRaises(except_orm) as ex:
             self.create_sched_line(cr, uid, self.sched_line_obj,
-                    self.sched_id, self.employee_id, hour_start=12, hour_end=10)
+                                   self.sched_id, self.employee_id, hour_start=12, hour_end=10)
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_obj.schedule_line_ids[0].id)
         self.assertTrue(sched_line_obj.id)
 
@@ -325,7 +329,7 @@ class TestPlanning(common.TransactionCase):
         appt_obj = self.appt_obj.browse(cr, uid, appt_ids[0])
         self.assertEqual(appt_obj.start, '2000-01-01 17:00:00')
 
-        # Validate update 
+        # Validate update
         # Can't update if hour_start < schedule.hour_start.
         with self.assertRaises(except_orm) as ex:
             self.sched_line_obj.write(cr, uid, [sched_line_obj.id], {'hour_start': 8})
@@ -371,16 +375,17 @@ class TestPlanning(common.TransactionCase):
 
     def testScheduleMissingEmployee(self):
         """
-        Check if when an employee is marked as missing, it won't allow 
+        Check if when an employee is marked as missing, it won't allow
         creating apppointments with that employee.
-        
+
         """
 
         # Create schedule and schedule line
         cr, uid = self.cr, self.uid
         sched_obj = self.sched_obj.browse(cr, uid, self.sched_id)
         sched_line_id = self.create_sched_line(cr, uid, self.sched_line_obj,
-                    self.sched_id, self.employee_id, hour_start=9, hour_end=17)
+                                               self.sched_id, self.employee_id,
+                                               hour_start=9, hour_end=17)
         sched_line_obj = self.sched_line_obj.browse(cr, uid, sched_line_id)
 
         # Cancel auto-created lunch break.
