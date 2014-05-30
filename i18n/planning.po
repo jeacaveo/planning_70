@@ -137,11 +137,6 @@ msgid "Notes and Observations."
 msgstr ""
 
 #. module: planning
-#: field:pos.order.line,appointment_id:0
-msgid "Appointment"
-msgstr ""
-
-#. module: planning
 #: field:res.partner,referrer_id:0
 msgid "Refered by"
 msgstr ""
