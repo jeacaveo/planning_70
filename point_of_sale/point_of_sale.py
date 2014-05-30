@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from openerp.osv import fields, osv
+from openerp.osv import osv
 from openerp import netsvc
 from openerp.osv.orm import except_orm
 from openerp.tools.translate import _
@@ -26,7 +26,7 @@ from openerp.tools.translate import _
 
 class pos_order(osv.osv):
     """
-    Integration with product_bundle by Ventura Systems. 
+    Integration with product_bundle by Ventura Systems.
 
     """
 
@@ -43,7 +43,7 @@ class pos_order(osv.osv):
         move_obj = self.pool.get('stock.move')
 
         for order in self.browse(cr, uid, ids, context=context):
-            if not order.state=='draft':
+            if not order.state == 'draft':
                 continue
             if order.amount_total >= 0:
                 type = 'out'
@@ -53,7 +53,7 @@ class pos_order(osv.osv):
             addr = order.partner_id and partner_obj.address_get(cr, uid, [order.partner_id.id], ['delivery']) or {}
             picking_id = picking_obj.create(cr, uid, {
                 'origin': order.name,
-                'partner_id': addr.get('delivery',False),
+                'partner_id': addr.get('delivery', False),
                 'type': type,
                 'company_id': order.company_id.id,
                 'move_type': 'direct',
@@ -133,12 +133,13 @@ class pos_order(osv.osv):
         order_obj = self.pool.get('pos.order').browse(cr, uid, id, context=context)[0]
         for line in order_obj.lines:
             appt_id = self.pool.get('planning.appointment').\
-                    search(cr, uid, [('order_line_id', '=', line.id)], context=context)
+                search(cr, uid, [('order_line_id', '=', line.id)], context=context)
             if appt_id:
                 appt_obj = self.pool.get('planning.appointment').browse(cr, uid, appt_id, context=context)[0]
                 appt_obj.case_close()
 
         return result
+
 
 class pos_order_line(osv.osv):
     _inherit = 'pos.order.line'
@@ -151,7 +152,7 @@ class pos_order_line(osv.osv):
 
         # Get appointment that's assigned this pos.order.line
         appt_id = self.pool.get('planning.appointment').\
-                search(cr, uid, [('order_line_id', '=', ids[0])], context=context)
+            search(cr, uid, [('order_line_id', '=', ids[0])], context=context)
         if appt_id:
             raise except_orm(_('Error'), _("Can't delete this line since there's an appointment associated with it. Cancel the appointment to remove it."))
         return super(pos_order_line, self).unlink(cr, uid, ids, context)
