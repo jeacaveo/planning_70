@@ -24,9 +24,9 @@ To configure a development enviroment (in Ubuntu):
 2. Clone this repo to your marcos_addons dir:
    (Example: `~/.virtualenvs/src/marcos_addons`)
 
-        $ git clone git@github.com:jventuravs/planning-7.0.git
+        $ git clone git@github.com:jventuravs/planning_70.git
 
 3. Clone the required custom dependencies into the same repo:
 
-        $ git clone git@github.com:jventuravs/product_bundle-7.0.git
-        $ git clone git@github.com:jventuravs/resource_planning-7.0.git
+        $ git clone git@github.com:jventuravs/product_bundle_70.git
+        $ git clone git@github.com:jventuravs/resource_planning_70.git
