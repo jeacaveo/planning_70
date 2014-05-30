@@ -132,27 +132,26 @@ class pos_order(osv.osv):
 
         order_obj = self.pool.get('pos.order').browse(cr, uid, id, context=context)[0]
         for line in order_obj.lines:
-            if line.appointment_id:
-                appt_obj = self.pool.get('planning.appointment').browse(cr, uid, [line.appointment_id.id], context=context)[0]
+            appt_id = self.pool.get('planning.appointment').\
+                    search(cr, uid, [('order_line_id', '=', line.id)], context=context)
+            if appt_id:
+                appt_obj = self.pool.get('planning.appointment').browse(cr, uid, appt_id, context=context)[0]
                 appt_obj.case_close()
 
         return result
 
 class pos_order_line(osv.osv):
     _inherit = 'pos.order.line'
-    _columns = {
-            'appointment_id': fields.many2one(
-                'planning.appointment', 'Appointment'),
-            }
 
     def unlink(self, cr, uid, ids, context=None):
         """
-        Avoid unlinking of order_lines that have an appointment assigned.
+        Avoid unlinking of order_lines that are assigned to an appointment .
 
         """
 
-        order_line_obj = self.pool.get('pos.order.line').\
-                browse(cr, uid, ids[0], context=context)
-        if order_line_obj.appointment_id:
+        # Get appointment that's assigned this pos.order.line
+        appt_id = self.pool.get('planning.appointment').\
+                search(cr, uid, [('order_line_id', '=', ids[0])], context=context)
+        if appt_id:
             raise except_orm(_('Error'), _("Can't delete this line since there's an appointment associated with it. Cancel the appointment to remove it."))
         return super(pos_order_line, self).unlink(cr, uid, ids, context)
