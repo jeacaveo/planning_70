@@ -23,7 +23,7 @@ class TestPlanning(common.TransactionCase):
         self.sched_obj = self.registry('planning.schedule')
         self.sched_line_obj = self.registry('planning.schedule.line')
         self.client_obj = self.registry('res.partner')
-        self.pos_session_opening_obj = self.registry('pos.session.opening')
+        self.pos_session_obj = self.registry('pos.session')
         self.appt_obj = self.registry('planning.appointment')
         self.pos_order_obj = self.registry('pos.order')
         self.pos_order_line_obj = self.registry('pos.order.line')
@@ -101,7 +101,7 @@ class TestPlanning(common.TransactionCase):
         # To open pos session (pos.session musn't be open when testing.)
         # TODO use receptionist user
         uid = 5  # self.uid
-        self.pos_session_opening_id = self.pos_session_opening_obj.create(cr, uid, {'pos_config_id': 1})
+        self.pos_session_id = self.pos_session_obj.create(cr, uid, {'config_id': 1})
 
     def testAppointmentCancel(self):
         """
@@ -109,14 +109,14 @@ class TestPlanning(common.TransactionCase):
         removes pos.order.line if it exists and doesn't allow modifications.
 
         Also validate that it won't allow pos.order.line unlinking,
-        if an appointment_id is present.
+        if an order_lind_id is present in the appointment.
 
         """
 
         # TODO use receptionist user
         cr, uid = self.cr, 5  # self.uid
         # Open POS Session to be able to create pos.orders
-        self.pos_session_opening_obj.open_session_cb(cr, uid, [self.pos_session_opening_id])
+        self.pos_session_obj.open_cb(cr, uid, [self.pos_session_id])
         appt_obj = self.appt_obj.browse(cr, uid, self.appt_id)
         appt_obj.action_check_in()
         # Validate pos.order.line can't be removed if it's related to an appt.
@@ -247,7 +247,7 @@ class TestPlanning(common.TransactionCase):
         # TODO use receptionist user
         cr, uid = self.cr, 5  # self.uid
         # Open POS Session to be able to create pos.orders
-        self.pos_session_opening_obj.open_session_cb(cr, uid, [self.pos_session_opening_id])
+        self.pos_session_obj.open_cb(cr, uid, [self.pos_session_id])
         appt = self.appt_obj.browse(cr, uid, self.appt_id)
         appt.action_check_in()
         self.assertEqual(appt.state, 'open')
